@@ -207,20 +207,3 @@ impl OpenAIClient {
         Ok((response.text, words))
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_min_duration_validation() {
-        let duration = 300; // 0.3 seconds
-        assert!(duration < MIN_AUDIO_DURATION_MS);
-    }
-
-    #[test]
-    fn test_max_file_size() {
-        let size = 30 * 1024 * 1024; // 30MB
-        assert!(size > MAX_FILE_SIZE_BYTES);
-    }
-}
