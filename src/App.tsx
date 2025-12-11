@@ -13,12 +13,37 @@ interface ListenerError {
   is_permission_error: boolean;
 }
 
+interface TranscriptionStartedEvent {
+  timestamp: number;
+  filename: string;
+}
+
+interface TranscriptionCompletedEvent {
+  timestamp: number;
+  filename: string;
+  text: string;
+  duration_ms: number;
+  char_count: number;
+}
+
+interface TranscriptionErrorEvent {
+  error: string;
+  error_type: string;
+  filename: string;
+  timestamp: number;
+}
+
 function App() {
   const [fnPressed, setFnPressed] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasPermission, setHasPermission] = useState(true);
   const [checkingPermission, setCheckingPermission] = useState(true);
   const listenerStartedRef = useRef(false);
+
+  // Transcription state
+  const [transcribing, setTranscribing] = useState(false);
+  const [transcriptionText, setTranscriptionText] = useState<string>("");
+  const [transcriptionError, setTranscriptionError] = useState<string | null>(null);
 
   // Check permission on mount
   useEffect(() => {
@@ -44,6 +69,46 @@ function App() {
       if (event.payload.is_permission_error) {
         setHasPermission(false);
       }
+    });
+
+    return () => {
+      unlisten.then((f) => f());
+    };
+  }, []);
+
+  // Listen for transcription started event
+  useEffect(() => {
+    const unlisten = listen<TranscriptionStartedEvent>("transcription-started", (event) => {
+      console.log("[Transcription] Started:", event.payload);
+      setTranscribing(true);
+      setTranscriptionError(null);
+    });
+
+    return () => {
+      unlisten.then((f) => f());
+    };
+  }, []);
+
+  // Listen for transcription completed event
+  useEffect(() => {
+    const unlisten = listen<TranscriptionCompletedEvent>("transcription-completed", (event) => {
+      console.log("[Transcription] Completed:", event.payload);
+      setTranscribing(false);
+      setTranscriptionText(event.payload.text);
+      setTranscriptionError(null);
+    });
+
+    return () => {
+      unlisten.then((f) => f());
+    };
+  }, []);
+
+  // Listen for transcription error event
+  useEffect(() => {
+    const unlisten = listen<TranscriptionErrorEvent>("transcription-error", (event) => {
+      console.error("[Transcription] Error:", event.payload);
+      setTranscribing(false);
+      setTranscriptionError(event.payload.error);
     });
 
     return () => {
@@ -157,6 +222,92 @@ function App() {
 
       <div style={{ marginTop: "30px", fontSize: "14px", opacity: 0.7 }}>
         <p>Press and hold the FN key on your keyboard to test</p>
+      </div>
+
+      {/* Transcription Section */}
+      <div style={{ marginTop: "40px", width: "100%", maxWidth: "600px" }}>
+        <h2 style={{ fontSize: "20px", marginBottom: "15px" }}>Transcription</h2>
+
+        {transcribing && (
+          <div style={{
+            padding: "20px",
+            backgroundColor: "#4A90E2",
+            borderRadius: "8px",
+            color: "white",
+            textAlign: "center"
+          }}>
+            <div style={{ fontSize: "16px", fontWeight: "bold" }}>🎙️ Transcribing audio...</div>
+            <div style={{ fontSize: "12px", marginTop: "5px", opacity: 0.8 }}>Please wait</div>
+          </div>
+        )}
+
+        {transcriptionError && (
+          <div style={{
+            padding: "20px",
+            backgroundColor: "#ff6b6b",
+            borderRadius: "8px",
+            color: "white"
+          }}>
+            <h3 style={{ margin: "0 0 10px 0" }}>❌ Transcription Error</h3>
+            <p style={{ margin: 0, fontSize: "14px" }}>{transcriptionError}</p>
+          </div>
+        )}
+
+        {!transcribing && !transcriptionError && transcriptionText && (
+          <div style={{
+            padding: "20px",
+            backgroundColor: "#f5f5f5",
+            borderRadius: "8px",
+            border: "2px solid #4CAF50"
+          }}>
+            <div style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "10px"
+            }}>
+              <h3 style={{ margin: 0, color: "#4CAF50" }}>✅ Transcription Result</h3>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(transcriptionText);
+                }}
+                style={{
+                  padding: "5px 10px",
+                  fontSize: "12px",
+                  backgroundColor: "#4CAF50",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer"
+                }}
+              >
+                📋 Copy
+              </button>
+            </div>
+            <p style={{
+              margin: 0,
+              fontSize: "16px",
+              lineHeight: "1.5",
+              color: "#333",
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word"
+            }}>
+              {transcriptionText}
+            </p>
+          </div>
+        )}
+
+        {!transcribing && !transcriptionError && !transcriptionText && (
+          <div style={{
+            padding: "20px",
+            backgroundColor: "#f5f5f5",
+            borderRadius: "8px",
+            textAlign: "center",
+            color: "#999"
+          }}>
+            <p style={{ margin: 0 }}>No transcription yet. Hold FN key to record and transcribe.</p>
+          </div>
+        )}
       </div>
     </main>
   );

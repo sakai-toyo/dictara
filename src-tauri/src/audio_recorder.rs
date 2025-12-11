@@ -15,7 +15,7 @@ pub struct RecordingStartedEvent {
     pub filename: String,
 }
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, serde::Deserialize)]
 pub struct RecordingStoppedEvent {
     pub timestamp: u128,
     pub filename: String,
@@ -59,35 +59,34 @@ impl Clone for AudioRecorder {
 
 #[derive(Debug)]
 pub enum RecorderError {
-    PermissionDenied,
     NoInputDevice,
-    DeviceError(String),
-    IoError(std::io::Error),
+    DeviceError,
+    IoError,
     AlreadyRecording,
     NotRecording,
 }
 
 impl From<std::io::Error> for RecorderError {
-    fn from(err: std::io::Error) -> Self {
-        RecorderError::IoError(err)
+    fn from(_err: std::io::Error) -> Self {
+        RecorderError::IoError
     }
 }
 
 impl From<cpal::BuildStreamError> for RecorderError {
-    fn from(err: cpal::BuildStreamError) -> Self {
-        RecorderError::DeviceError(format!("Build stream error: {}", err))
+    fn from(_err: cpal::BuildStreamError) -> Self {
+        RecorderError::DeviceError
     }
 }
 
 impl From<cpal::PlayStreamError> for RecorderError {
-    fn from(err: cpal::PlayStreamError) -> Self {
-        RecorderError::DeviceError(format!("Play stream error: {}", err))
+    fn from(_err: cpal::PlayStreamError) -> Self {
+        RecorderError::DeviceError
     }
 }
 
 impl From<cpal::PauseStreamError> for RecorderError {
-    fn from(err: cpal::PauseStreamError) -> Self {
-        RecorderError::DeviceError(format!("Pause stream error: {}", err))
+    fn from(_err: cpal::PauseStreamError) -> Self {
+        RecorderError::DeviceError
     }
 }
 
@@ -129,7 +128,7 @@ impl AudioRecorder {
         // Get device config to determine actual sample rate
         let config = device
             .default_input_config()
-            .map_err(|e| RecorderError::DeviceError(format!("Failed to get input config: {}", e)))?;
+            .map_err(|_| RecorderError::DeviceError)?;
 
         println!("[Audio Recorder] Input config: {:?}", config);
 
@@ -149,7 +148,7 @@ impl AudioRecorder {
         println!("[Audio Recorder] WAV spec: {} channels, {} Hz, 16-bit", spec.channels, spec.sample_rate);
 
         let writer = WavWriter::create(file_path, spec)
-            .map_err(|e| RecorderError::IoError(std::io::Error::new(std::io::ErrorKind::Other, e)))?;
+            .map_err(|_| RecorderError::IoError)?;
         let writer = Arc::new(Mutex::new(writer));
 
         // Build input stream
@@ -162,9 +161,7 @@ impl AudioRecorder {
             cpal::SampleFormat::I32 => build_input_stream::<i32>(&device, &config.into(), writer_clone)?,
             cpal::SampleFormat::F32 => build_input_stream::<f32>(&device, &config.into(), writer_clone)?,
             _ => {
-                return Err(RecorderError::DeviceError(
-                    "Unsupported sample format".to_string(),
-                ))
+                return Err(RecorderError::DeviceError)
             }
         };
 
