@@ -5,10 +5,16 @@ use crate::{
     openai_client::OpenAIClient,
 };
 use cpal::traits::StreamTrait;
+use std::sync::Mutex;
 use tauri::{Emitter, Listener, Manager};
 
 // Transcription event types
 use serde::Serialize;
+
+// Tray icon state for managing icon changes
+pub struct TrayIconState {
+    tray: Mutex<Option<tauri::tray::TrayIcon>>,
+}
 
 #[derive(Clone, Serialize)]
 pub struct TranscriptionStartedEvent {
@@ -273,7 +279,7 @@ pub fn setup_app(app: &mut tauri::App<tauri::Wry>) -> Result<(), Box<dyn std::er
     let menu = build_menu(app)?;
 
     // Build tray icon
-    let _tray = tauri::tray::TrayIconBuilder::new()
+    let tray = tauri::tray::TrayIconBuilder::new()
         .icon(app.default_window_icon().unwrap().clone())
         .menu(&menu)
         .show_menu_on_left_click(true)
@@ -295,6 +301,60 @@ pub fn setup_app(app: &mut tauri::App<tauri::Wry>) -> Result<(), Box<dyn std::er
             }
         })
         .build(app)?;
+
+    // Store tray icon in app state for dynamic icon updates
+    let tray_state = TrayIconState {
+        tray: Mutex::new(Some(tray)),
+    };
+    app.manage(tray_state);
+
+    // Listen to recording events to change tray icon
+    let app_handle_for_tray = app.app_handle().clone();
+    app.listen("recording-started", move |_event| {
+        println!("[Tray] Recording started - changing icon to red circle");
+        if let Some(state) = app_handle_for_tray.try_state::<TrayIconState>() {
+            if let Ok(tray_lock) = state.tray.lock() {
+                if let Some(tray) = tray_lock.as_ref() {
+                    // Load recording icon from embedded bytes
+                    const RECORDING_ICON_BYTES: &[u8] = include_bytes!("../icons/recording.png");
+
+                    // Decode PNG to RGBA
+                    if let Ok(img) = image::load_from_memory(RECORDING_ICON_BYTES) {
+                        let rgba = img.to_rgba8();
+                        let (width, height) = rgba.dimensions();
+                        let icon = tauri::image::Image::new_owned(rgba.into_raw(), width, height);
+
+                        if let Err(e) = tray.set_icon(Some(icon)) {
+                            eprintln!("[Tray] Failed to set recording icon: {}", e);
+                        } else {
+                            println!("[Tray] ✅ Icon changed to recording state");
+                        }
+                    } else {
+                        eprintln!("[Tray] Failed to decode recording icon");
+                    }
+                }
+            }
+        }
+    });
+
+    let app_handle_for_tray2 = app.app_handle().clone();
+    app.listen("recording-stopped", move |_event| {
+        println!("[Tray] Recording stopped - changing icon back to default");
+        if let Some(state) = app_handle_for_tray2.try_state::<TrayIconState>() {
+            if let Ok(tray_lock) = state.tray.lock() {
+                if let Some(tray) = tray_lock.as_ref() {
+                    // Restore default icon
+                    if let Some(default_icon) = app_handle_for_tray2.default_window_icon() {
+                        if let Err(e) = tray.set_icon(Some(default_icon.clone())) {
+                            eprintln!("[Tray] Failed to restore default icon: {}", e);
+                        } else {
+                            println!("[Tray] ✅ Icon restored to default state");
+                        }
+                    }
+                }
+            }
+        }
+    });
 
     Ok(())
 }

@@ -133,7 +133,7 @@ impl OpenAIClient {
         // Build transcription request
         let request = CreateTranscriptionRequestArgs::default()
             .file(file_path.to_string_lossy().to_string())
-            .prompt("If input is empty do no treturn anything")
+            .prompt("If input is empty do not return anything")
             .model(model)
             .temperature(0.0)
             .response_format(AudioResponseFormat::Json)

@@ -10,6 +10,7 @@ use objc2_core_graphics::{
 ///
 /// This function simply sets the text to clipboard so the user can paste it manually.
 /// No keyboard simulation, no extra permissions required.
+#[allow(dead_code)]
 pub fn copy_to_clipboard(text: &str) -> Result<(), String> {
     // Guard: Don't copy empty text
     if text.is_empty() {
