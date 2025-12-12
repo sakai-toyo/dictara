@@ -186,6 +186,23 @@ pub fn setup_app(app: &mut tauri::App<tauri::Wry>) -> Result<(), Box<dyn std::er
 
                                 println!("[Transcription] ✅ Success: {}", text);
 
+                                // AUTO-PASTE: Immediately paste the transcribed text
+                                // Using CGEvent-based paste (Option 3) to avoid rdev state corruption
+                                #[cfg(target_os = "macos")]
+                                match crate::clipboard_paste::auto_paste_text_cgevent(&text) {
+                                    Ok(()) => {
+                                        println!("[Auto-Paste] ✅ Successfully pasted text: {}", text);
+                                    }
+                                    Err(e) => {
+                                        eprintln!("[Auto-Paste] ⚠️  Failed to paste: {}", e);
+                                    }
+                                }
+
+                                #[cfg(not(target_os = "macos"))]
+                                {
+                                    eprintln!("[Auto-Paste] ⚠️  Auto-paste not yet implemented for this platform");
+                                }
+
                                 app_clone2
                                     .emit(
                                         "transcription-completed",

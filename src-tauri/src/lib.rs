@@ -1,4 +1,5 @@
 mod audio_recorder;
+mod clipboard_paste;
 mod commands;
 mod keyboard_listener;
 mod menu;

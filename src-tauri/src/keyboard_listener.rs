@@ -1,8 +1,12 @@
 use rdev::{listen, Event, EventType, Key, ListenError};
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::thread;
 use std::time::SystemTime;
 use serde::Serialize;
 use tauri::Emitter;
+
+// Global counter for FN key events (for debugging state corruption)
+static FN_KEY_EVENT_COUNTER: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Clone, Serialize, serde::Deserialize)]
 pub struct FnKeyEvent {
@@ -32,14 +36,26 @@ pub fn start_fn_key_listener(app_handle: tauri::AppHandle) {
                     .as_millis();
 
                 let pressed = matches!(event.event_type, EventType::KeyPress(_));
-                println!("[{}] FN Key {}", timestamp, if pressed { "PRESSED" } else { "RELEASED" });
+                let event_num = FN_KEY_EVENT_COUNTER.fetch_add(1, Ordering::SeqCst) + 1;
+
+                println!(
+                    "[{}] 🔑 FN Key #{}: {} (timestamp: {})",
+                    if pressed { "✅" } else { "🔓" },
+                    event_num,
+                    if pressed { "PRESSED " } else { "RELEASED" },
+                    timestamp
+                );
 
                 let payload = FnKeyEvent {
                     pressed,
                     timestamp,
                 };
 
-                app_handle.emit("fn-key-event", payload).ok();
+                // Emit on a separate thread to avoid blocking the rdev event loop
+                let app_clone = app_handle.clone();
+                thread::spawn(move || {
+                    app_clone.emit("fn-key-event", payload).ok();
+                });
             }
         }) {
             // Handle errors

@@ -90,11 +90,17 @@ impl OpenAIClient {
         file_path: PathBuf,
         duration_ms: u64,
     ) -> Result<String, TranscriptionError> {
-        println!("[OpenAI Client] Transcribing: {:?} (duration: {}ms)", file_path, duration_ms);
+        println!(
+            "[OpenAI Client] Transcribing: {:?} (duration: {}ms)",
+            file_path, duration_ms
+        );
 
         // Validate minimum duration
         if duration_ms < MIN_AUDIO_DURATION_MS {
-            eprintln!("[OpenAI Client] Audio too short: {}ms < {}ms", duration_ms, MIN_AUDIO_DURATION_MS);
+            eprintln!(
+                "[OpenAI Client] Audio too short: {}ms < {}ms",
+                duration_ms, MIN_AUDIO_DURATION_MS
+            );
             return Err(TranscriptionError::AudioTooShort { duration_ms });
         }
 
@@ -111,33 +117,40 @@ impl OpenAIClient {
         let file_size = metadata.len();
 
         if file_size > MAX_FILE_SIZE_BYTES {
-            eprintln!("[OpenAI Client] File too large: {} bytes > {} bytes", file_size, MAX_FILE_SIZE_BYTES);
-            return Err(TranscriptionError::FileTooLarge { size_bytes: file_size });
+            eprintln!(
+                "[OpenAI Client] File too large: {} bytes > {} bytes",
+                file_size, MAX_FILE_SIZE_BYTES
+            );
+            return Err(TranscriptionError::FileTooLarge {
+                size_bytes: file_size,
+            });
         }
 
         println!("[OpenAI Client] File size: {} bytes", file_size);
 
+        let model = "gpt-4o-transcribe"; // "whisper-1"
+
         // Build transcription request
         let request = CreateTranscriptionRequestArgs::default()
             .file(file_path.to_string_lossy().to_string())
-            .model("whisper-1")
+            .prompt("If input is empty do no treturn anything")
+            .model(model)
+            .temperature(0.0)
             .response_format(AudioResponseFormat::Json)
             .build()
             .map_err(|e| TranscriptionError::ApiError(format!("Failed to build request: {}", e)))?;
 
         // Call OpenAI API
         println!("[OpenAI Client] Sending request to OpenAI API...");
-        let response = self
-            .client
-            .audio()
-            .transcribe(request)
-            .await
-            .map_err(|e| {
-                eprintln!("[OpenAI Client] API error: {}", e);
-                TranscriptionError::ApiError(format!("{}", e))
-            })?;
+        let response = self.client.audio().transcribe(request).await.map_err(|e| {
+            eprintln!("[OpenAI Client] API error: {}", e);
+            TranscriptionError::ApiError(format!("{}", e))
+        })?;
 
-        println!("[OpenAI Client] Transcription successful: {} characters", response.text.len());
+        println!(
+            "[OpenAI Client] Transcription successful: {} characters",
+            response.text.len()
+        );
         println!("[OpenAI Client] Text: {}", response.text);
 
         Ok(response.text)
@@ -169,7 +182,7 @@ impl OpenAIClient {
         let metadata = std::fs::metadata(&file_path)?;
         if metadata.len() > MAX_FILE_SIZE_BYTES {
             return Err(TranscriptionError::FileTooLarge {
-                size_bytes: metadata.len()
+                size_bytes: metadata.len(),
             });
         }
 
@@ -194,15 +207,16 @@ impl OpenAIClient {
             .map_err(|e| TranscriptionError::ApiError(format!("{}", e)))?;
 
         let word_count = response.words.as_ref().map(|w| w.len());
-        println!("[OpenAI Client] Transcription successful: {} characters, {} words",
+        println!(
+            "[OpenAI Client] Transcription successful: {} characters, {} words",
             response.text.len(),
             word_count.unwrap_or(0)
         );
 
         // Extract words for future use
-        let words = response.words.map(|w| {
-            w.iter().map(|word| word.word.clone()).collect()
-        });
+        let words = response
+            .words
+            .map(|w| w.iter().map(|word| word.word.clone()).collect());
 
         Ok((response.text, words))
     }
