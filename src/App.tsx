@@ -13,24 +13,8 @@ interface ListenerError {
   is_permission_error: boolean;
 }
 
-interface TranscriptionStartedEvent {
-  timestamp: number;
-  filename: string;
-}
-
-interface TranscriptionCompletedEvent {
-  timestamp: number;
-  filename: string;
+interface RecordingStoppedEvent {
   text: string;
-  duration_ms: number;
-  char_count: number;
-}
-
-interface TranscriptionErrorEvent {
-  error: string;
-  error_type: string;
-  filename: string;
-  timestamp: number;
 }
 
 function App() {
@@ -76,10 +60,10 @@ function App() {
     };
   }, []);
 
-  // Listen for transcription started event
+  // Listen for recording started event
   useEffect(() => {
-    const unlisten = listen<TranscriptionStartedEvent>("transcription-started", (event) => {
-      console.log("[Transcription] Started:", event.payload);
+    const unlisten = listen("recording-started", () => {
+      console.log("[Recording] Started");
       setTranscribing(true);
       setTranscriptionError(null);
     });
@@ -89,26 +73,13 @@ function App() {
     };
   }, []);
 
-  // Listen for transcription completed event
+  // Listen for recording stopped event
   useEffect(() => {
-    const unlisten = listen<TranscriptionCompletedEvent>("transcription-completed", (event) => {
-      console.log("[Transcription] Completed:", event.payload);
+    const unlisten = listen<RecordingStoppedEvent>("recording-stopped", (event) => {
+      console.log("[Recording] Stopped:", event.payload);
       setTranscribing(false);
       setTranscriptionText(event.payload.text);
       setTranscriptionError(null);
-    });
-
-    return () => {
-      unlisten.then((f) => f());
-    };
-  }, []);
-
-  // Listen for transcription error event
-  useEffect(() => {
-    const unlisten = listen<TranscriptionErrorEvent>("transcription-error", (event) => {
-      console.error("[Transcription] Error:", event.payload);
-      setTranscribing(false);
-      setTranscriptionError(event.payload.error);
     });
 
     return () => {

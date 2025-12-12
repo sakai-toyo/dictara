@@ -1,80 +1,64 @@
+use crate::recording::RecordingCommand;
 use rdev::{listen, Event, EventType, Key, ListenError};
-use std::sync::atomic::{AtomicU32, Ordering};
-use std::thread;
-use std::time::SystemTime;
-use serde::Serialize;
-use tauri::Emitter;
+use std::thread::{self, JoinHandle};
+use tokio::sync::mpsc;
 
-// Global counter for FN key events (for debugging state corruption)
-static FN_KEY_EVENT_COUNTER: AtomicU32 = AtomicU32::new(0);
-
-#[derive(Clone, Serialize, serde::Deserialize)]
-pub struct FnKeyEvent {
-    pub pressed: bool,
-    pub timestamp: u128,
+/// Stateful FN key listener
+pub struct KeyListener {
+    _thread_handle: Option<JoinHandle<()>>,
 }
 
-#[derive(Clone, Serialize)]
-struct ListenerError {
-    error: String,
-    is_permission_error: bool,
-}
+impl KeyListener {
+    /// Create and start a new FN key listener that sends commands through a channel
+    ///
+    /// # Arguments
+    /// * `command_tx` - Channel sender for recording commands
+    pub fn start(command_tx: mpsc::Sender<RecordingCommand>) -> Self {
+        let thread_handle = thread::spawn(move || {
+            println!("[FN Key Listener] Starting global keyboard listener...");
 
-pub fn start_fn_key_listener(app_handle: tauri::AppHandle) {
-    thread::spawn(move || {
-        println!("[FN Key Listener] Starting global keyboard listener...");
+            let listen_res = listen(move |event: Event| {
+                // Only handle Function key events
+                match event.event_type {
+                    EventType::KeyPress(Key::Function) => {
+                        println!("[✅] 🔑 FN Key");
 
-        // Clone app_handle for error handling before moving into listen closure
-        let app_handle_for_error = app_handle.clone();
+                        // Send Start command through channel (blocking since we're in sync thread)
+                        if let Err(e) = command_tx.blocking_send(RecordingCommand::Start) {
+                            eprintln!("[FN Key Listener] Failed to send Start command: {}", e);
+                        }
+                    }
+                    EventType::KeyRelease(Key::Function) => {
+                        println!("[🔓] 🔑 FN Key: RELEASED");
 
-        if let Err(error) = listen(move |event: Event| {
-            // Only handle Function key events
-            if let EventType::KeyPress(Key::Function) | EventType::KeyRelease(Key::Function) = event.event_type {
-                let timestamp = SystemTime::now()
-                    .duration_since(SystemTime::UNIX_EPOCH)
-                    .unwrap()
-                    .as_millis();
-
-                let pressed = matches!(event.event_type, EventType::KeyPress(_));
-                let event_num = FN_KEY_EVENT_COUNTER.fetch_add(1, Ordering::SeqCst) + 1;
-
-                println!(
-                    "[{}] 🔑 FN Key #{}: {} (timestamp: {})",
-                    if pressed { "✅" } else { "🔓" },
-                    event_num,
-                    if pressed { "PRESSED " } else { "RELEASED" },
-                    timestamp
-                );
-
-                let payload = FnKeyEvent {
-                    pressed,
-                    timestamp,
-                };
-
-                // Emit on a separate thread to avoid blocking the rdev event loop
-                let app_clone = app_handle.clone();
-                thread::spawn(move || {
-                    app_clone.emit("fn-key-event", payload).ok();
-                });
-            }
-        }) {
-            // Handle errors
-            let is_permission_error = matches!(error, ListenError::EventTapError);
-            eprintln!("[FN Key Listener] Error: {:?}", error);
-
-            let error_msg = match error {
-                ListenError::EventTapError => {
-                    "macOS Accessibility permission denied. Please grant permission and restart.".to_string()
+                        // Send Stop command through channel (blocking since we're in sync thread)
+                        if let Err(e) = command_tx.blocking_send(RecordingCommand::Stop) {
+                            eprintln!("[FN Key Listener] Failed to send Stop command: {}", e);
+                        }
+                    }
+                    _ => {}
                 }
-                _ => format!("Keyboard listener failed: {:?}", error)
-            };
+            });
 
-            let error_payload = ListenerError {
-                error: error_msg,
-                is_permission_error,
-            };
+            match listen_res {
+                Ok(_) => {}
+                Err(error) => {
+                    eprintln!("[FN Key Listener] Error: {:?}", error);
+                    let error_msg = match error {
+                        ListenError::EventTapError => {
+                            "macOS Accessibility permission denied. Please grant permission and restart."
+                        }
+                        _ => "Keyboard listener failed",
+                    };
+                    eprintln!("[FN Key Listener] {}", error_msg);
+                }
+            }
 
-            app_handle_for_error.emit("fn-listener-error", error_payload).ok();
+            println!("[FN Key Listener] Thread exiting");
+        });
+
+        Self {
+            _thread_handle: Some(thread_handle),
         }
-    });
+    }
 }

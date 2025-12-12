@@ -1,10 +1,12 @@
-mod audio_recorder;
+mod clients;
 mod clipboard_paste;
-mod commands;
+mod error;
+mod events;
 mod keyboard_listener;
-mod menu;
-mod openai_client;
+mod recording;
 mod setup;
+mod tauri_commands;
+mod ui;
 
 pub fn run() {
     // Load environment variables from .env file
@@ -15,9 +17,9 @@ pub fn run() {
             return setup::setup_app(app);
         })
         .invoke_handler(tauri::generate_handler![
-            commands::check_accessibility_permission,
-            commands::request_accessibility_permission,
-            commands::restart_app
+            tauri_commands::check_accessibility_permission,
+            tauri_commands::request_accessibility_permission,
+            tauri_commands::restart_app
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

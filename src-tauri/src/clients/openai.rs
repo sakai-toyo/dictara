@@ -76,7 +76,7 @@ impl OpenAIClient {
         })
     }
 
-    /// Transcribe audio file to text
+    /// Transcribe audio file to text (blocking/synchronous version)
     ///
     /// # Arguments
     /// * `file_path` - Path to the audio file (WAV, MP3, etc.)
@@ -85,6 +85,120 @@ impl OpenAIClient {
     /// # Returns
     /// * `Ok(String)` - Transcribed text
     /// * `Err(TranscriptionError)` - Error details
+    pub fn transcribe_audio_sync(
+        &self,
+        file_path: PathBuf,
+        duration_ms: u64,
+    ) -> Result<String, TranscriptionError> {
+        println!(
+            "[OpenAI Client] Transcribing (sync): {:?} (duration: {}ms)",
+            file_path, duration_ms
+        );
+
+        // Validate minimum duration
+        if duration_ms < MIN_AUDIO_DURATION_MS {
+            eprintln!(
+                "[OpenAI Client] Audio too short: {}ms < {}ms",
+                duration_ms, MIN_AUDIO_DURATION_MS
+            );
+            return Err(TranscriptionError::AudioTooShort { duration_ms });
+        }
+
+        // Check if file exists
+        if !file_path.exists() {
+            eprintln!("[OpenAI Client] File not found: {:?}", file_path);
+            return Err(TranscriptionError::FileNotFound(
+                file_path.to_string_lossy().to_string(),
+            ));
+        }
+
+        // Check file size
+        let metadata = std::fs::metadata(&file_path)?;
+        let file_size = metadata.len();
+
+        if file_size > MAX_FILE_SIZE_BYTES {
+            eprintln!(
+                "[OpenAI Client] File too large: {} bytes > {} bytes",
+                file_size, MAX_FILE_SIZE_BYTES
+            );
+            return Err(TranscriptionError::FileTooLarge {
+                size_bytes: file_size,
+            });
+        }
+
+        println!("[OpenAI Client] File size: {} bytes", file_size);
+
+        let api_key = std::env::var("OPENAI_API_KEY")
+            .map_err(|_| TranscriptionError::ApiKeyMissing)?;
+
+        let model = "gpt-4o-transcribe";
+
+        // Build multipart form
+        let form = reqwest::blocking::multipart::Form::new()
+            .file("file", &file_path)
+            .map_err(|e| TranscriptionError::IoError(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!("Failed to read file: {}", e)
+            )))?
+            .text("model", model)
+            .text("temperature", "0.0")
+            .text("prompt", "If input is empty do not return anything")
+            .text("response_format", "json");
+
+        // Call OpenAI API
+        println!("[OpenAI Client] Sending request to OpenAI API...");
+        let client = reqwest::blocking::Client::new();
+        let response = client
+            .post("https://api.openai.com/v1/audio/transcriptions")
+            .bearer_auth(api_key)
+            .multipart(form)
+            .send()
+            .map_err(|e| {
+                eprintln!("[OpenAI Client] API request error: {}", e);
+                TranscriptionError::ApiError(format!("Request failed: {}", e))
+            })?;
+
+        // Check response status
+        if !response.status().is_success() {
+            let status = response.status();
+            let error_text = response.text().unwrap_or_else(|_| "Unknown error".to_string());
+            eprintln!("[OpenAI Client] API error response ({}): {}", status, error_text);
+            return Err(TranscriptionError::ApiError(format!(
+                "API returned status {}: {}",
+                status, error_text
+            )));
+        }
+
+        // Parse JSON response
+        let json: serde_json::Value = response.json().map_err(|e| {
+            eprintln!("[OpenAI Client] Failed to parse response: {}", e);
+            TranscriptionError::ApiError(format!("Failed to parse response: {}", e))
+        })?;
+
+        let text = json["text"]
+            .as_str()
+            .unwrap_or("")
+            .to_string();
+
+        println!(
+            "[OpenAI Client] Transcription successful: {} characters",
+            text.len()
+        );
+        println!("[OpenAI Client] Text: {}", text);
+
+        Ok(text)
+    }
+
+    /// Transcribe audio file to text (async version)
+    ///
+    /// # Arguments
+    /// * `file_path` - Path to the audio file (WAV, MP3, etc.)
+    /// * `duration_ms` - Duration of the recording in milliseconds (for validation)
+    ///
+    /// # Returns
+    /// * `Ok(String)` - Transcribed text
+    /// * `Err(TranscriptionError)` - Error details
+    #[allow(dead_code)]
     pub async fn transcribe_audio(
         &self,
         file_path: PathBuf,
@@ -154,70 +268,5 @@ impl OpenAIClient {
         println!("[OpenAI Client] Text: {}", response.text);
 
         Ok(response.text)
-    }
-
-    /// Transcribe with verbose output (includes timestamps and metadata)
-    /// This is useful for future features like word-level highlighting
-    #[allow(dead_code)]
-    pub async fn transcribe_audio_verbose(
-        &self,
-        file_path: PathBuf,
-        duration_ms: u64,
-    ) -> Result<(String, Option<Vec<String>>), TranscriptionError> {
-        use async_openai::types::TimestampGranularity;
-
-        println!("[OpenAI Client] Transcribing (verbose): {:?}", file_path);
-
-        // Same validation as regular transcribe
-        if duration_ms < MIN_AUDIO_DURATION_MS {
-            return Err(TranscriptionError::AudioTooShort { duration_ms });
-        }
-
-        if !file_path.exists() {
-            return Err(TranscriptionError::FileNotFound(
-                file_path.to_string_lossy().to_string(),
-            ));
-        }
-
-        let metadata = std::fs::metadata(&file_path)?;
-        if metadata.len() > MAX_FILE_SIZE_BYTES {
-            return Err(TranscriptionError::FileTooLarge {
-                size_bytes: metadata.len(),
-            });
-        }
-
-        // Build verbose request with timestamps
-        let request = CreateTranscriptionRequestArgs::default()
-            .file(file_path.to_string_lossy().to_string())
-            .model("whisper-1")
-            .response_format(AudioResponseFormat::VerboseJson)
-            .timestamp_granularities(vec![
-                TimestampGranularity::Word,
-                TimestampGranularity::Segment,
-            ])
-            .build()
-            .map_err(|e| TranscriptionError::ApiError(format!("Failed to build request: {}", e)))?;
-
-        println!("[OpenAI Client] Sending verbose request to OpenAI API...");
-        let response = self
-            .client
-            .audio()
-            .transcribe_verbose_json(request)
-            .await
-            .map_err(|e| TranscriptionError::ApiError(format!("{}", e)))?;
-
-        let word_count = response.words.as_ref().map(|w| w.len());
-        println!(
-            "[OpenAI Client] Transcription successful: {} characters, {} words",
-            response.text.len(),
-            word_count.unwrap_or(0)
-        );
-
-        // Extract words for future use
-        let words = response
-            .words
-            .map(|w| w.iter().map(|word| word.word.clone()).collect());
-
-        Ok((response.text, words))
     }
 }
