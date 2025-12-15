@@ -1,7 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef, useState } from "react";
-import "./App.css";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 
 interface FnKeyEvent {
   pressed: boolean;
@@ -122,162 +125,131 @@ function App() {
 
   if (checkingPermission) {
     return (
-      <main className="container">
-        <h1>TypeFree - FN Key Monitor</h1>
-        <p>Checking permissions...</p>
+      <main className="container mx-auto flex flex-col items-center justify-center min-h-screen p-4">
+        <h1 className="text-3xl font-bold mb-4">TypeFree - FN Key Monitor</h1>
+        <p className="text-muted-foreground">Checking permissions...</p>
       </main>
     );
   }
 
   if (!hasPermission) {
     return (
-      <main className="container">
-        <h1>TypeFree - FN Key Monitor</h1>
+      <main className="container mx-auto flex flex-col items-center justify-center min-h-screen p-4">
+        <h1 className="text-3xl font-bold mb-8">TypeFree - FN Key Monitor</h1>
 
-        <div style={{ padding: "20px", backgroundColor: "#ff6b6b", borderRadius: "8px", marginTop: "20px" }}>
-          <h2>⚠️ Permission Required</h2>
-          <p>This app needs Accessibility permission to monitor keyboard events.</p>
+        <Alert variant="destructive" className="max-w-2xl">
+          <AlertTitle className="text-xl mb-4">⚠️ Permission Required</AlertTitle>
+          <AlertDescription className="space-y-4">
+            <p>This app needs Accessibility permission to monitor keyboard events.</p>
 
-          <div style={{ marginTop: "20px" }}>
-            <h3>Setup Instructions:</h3>
-            <ol style={{ textAlign: "left", maxWidth: "500px", margin: "0 auto" }}>
-              <li>Click "Open System Settings" below</li>
-              <li>In Privacy & Security → Accessibility</li>
-              <li>Find "typefree" in the list</li>
-              <li>Toggle the switch ON</li>
-              <li>Click "Restart App" below</li>
-            </ol>
-          </div>
+            <div>
+              <h3 className="font-semibold mb-2">Setup Instructions:</h3>
+              <ol className="list-decimal list-inside space-y-1">
+                <li>Click "Open System Settings" below</li>
+                <li>In Privacy & Security → Accessibility</li>
+                <li>Find "typefree" in the list</li>
+                <li>Toggle the switch ON</li>
+                <li>Click "Restart App" below</li>
+              </ol>
+            </div>
 
-          <div style={{ marginTop: "20px", display: "flex", gap: "10px", justifyContent: "center" }}>
-            <button onClick={requestPermission} style={{ fontSize: "16px", padding: "10px 20px" }}>
-              Open System Settings
-            </button>
-            <button onClick={restartApp} style={{ fontSize: "16px", padding: "10px 20px", backgroundColor: "#4CAF50" }}>
-              Restart App
-            </button>
-          </div>
-        </div>
+            <div className="flex gap-3 pt-2">
+              <Button onClick={requestPermission}>
+                Open System Settings
+              </Button>
+              <Button onClick={restartApp} variant="secondary">
+                Restart App
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
       </main>
     );
   }
 
   return (
-    <main className="container">
-      <h1>TypeFree - FN Key Monitor</h1>
+    <main className="container mx-auto flex flex-col items-center min-h-screen p-8">
+      <h1 className="text-3xl font-bold mb-8">TypeFree - FN Key Monitor</h1>
 
       {error && (
-        <div style={{ padding: "15px", backgroundColor: "#ff6b6b", borderRadius: "8px", marginTop: "20px" }}>
-          <h3>Error</h3>
-          <p>{error}</p>
-          <button onClick={restartApp} style={{ marginTop: "10px" }}>
-            Restart App
-          </button>
-        </div>
+        <Alert variant="destructive" className="mb-6 max-w-2xl">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription className="space-y-3">
+            <p>{error}</p>
+            <Button onClick={restartApp} variant="outline" size="sm">
+              Restart App
+            </Button>
+          </AlertDescription>
+        </Alert>
       )}
 
-      <div style={{ marginTop: "40px", fontSize: "24px" }}>
-        <div style={{
-          display: "inline-block",
-          padding: "40px 80px",
-          backgroundColor: fnPressed ? "#4CAF50" : "#f44336",
-          borderRadius: "12px",
-          color: "white",
-          fontWeight: "bold",
-          transition: "all 0.2s ease",
-          boxShadow: fnPressed ? "0 8px 16px rgba(76, 175, 80, 0.4)" : "0 4px 8px rgba(0,0,0,0.2)"
-        }}>
+      <div className="my-12">
+        <Badge
+          variant={fnPressed ? "default" : "destructive"}
+          className="text-2xl px-20 py-10 transition-all duration-200 ease-in-out"
+          style={{
+            backgroundColor: fnPressed ? "#4CAF50" : "#f44336",
+            boxShadow: fnPressed ? "0 8px 16px rgba(76, 175, 80, 0.4)" : "0 4px 8px rgba(0,0,0,0.2)"
+          }}
+        >
           FN Pressed: {fnPressed ? "True" : "False"}
-        </div>
+        </Badge>
       </div>
 
-      <div style={{ marginTop: "30px", fontSize: "14px", opacity: 0.7 }}>
-        <p>Press and hold the FN key on your keyboard to test</p>
-      </div>
+      <p className="text-sm text-muted-foreground mb-8">
+        Press and hold the FN key on your keyboard to test
+      </p>
 
       {/* Transcription Section */}
-      <div style={{ marginTop: "40px", width: "100%", maxWidth: "600px" }}>
-        <h2 style={{ fontSize: "20px", marginBottom: "15px" }}>Transcription</h2>
+      <div className="w-full max-w-2xl space-y-4">
+        <h2 className="text-2xl font-semibold">Transcription</h2>
 
         {transcribing && (
-          <div style={{
-            padding: "20px",
-            backgroundColor: "#4A90E2",
-            borderRadius: "8px",
-            color: "white",
-            textAlign: "center"
-          }}>
-            <div style={{ fontSize: "16px", fontWeight: "bold" }}>🎙️ Transcribing audio...</div>
-            <div style={{ fontSize: "12px", marginTop: "5px", opacity: 0.8 }}>Please wait</div>
-          </div>
+          <Card className="bg-blue-500 text-white border-blue-600">
+            <CardContent className="pt-6 text-center">
+              <div className="text-lg font-bold">🎙️ Transcribing audio...</div>
+              <div className="text-sm mt-2 opacity-90">Please wait</div>
+            </CardContent>
+          </Card>
         )}
 
         {transcriptionError && (
-          <div style={{
-            padding: "20px",
-            backgroundColor: "#ff6b6b",
-            borderRadius: "8px",
-            color: "white"
-          }}>
-            <h3 style={{ margin: "0 0 10px 0" }}>❌ Transcription Error</h3>
-            <p style={{ margin: 0, fontSize: "14px" }}>{transcriptionError}</p>
-          </div>
+          <Alert variant="destructive">
+            <AlertTitle>❌ Transcription Error</AlertTitle>
+            <AlertDescription>{transcriptionError}</AlertDescription>
+          </Alert>
         )}
 
         {!transcribing && !transcriptionError && transcriptionText && (
-          <div style={{
-            padding: "20px",
-            backgroundColor: "#f5f5f5",
-            borderRadius: "8px",
-            border: "2px solid #4CAF50"
-          }}>
-            <div style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "10px"
-            }}>
-              <h3 style={{ margin: 0, color: "#4CAF50" }}>✅ Transcription Result</h3>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(transcriptionText);
-                }}
-                style={{
-                  padding: "5px 10px",
-                  fontSize: "12px",
-                  backgroundColor: "#4CAF50",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer"
-                }}
-              >
-                📋 Copy
-              </button>
-            </div>
-            <p style={{
-              margin: 0,
-              fontSize: "16px",
-              lineHeight: "1.5",
-              color: "#333",
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word"
-            }}>
-              {transcriptionText}
-            </p>
-          </div>
+          <Card className="border-green-500">
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-green-600">✅ Transcription Result</CardTitle>
+                <Button
+                  onClick={() => {
+                    navigator.clipboard.writeText(transcriptionText);
+                  }}
+                  size="sm"
+                  variant="outline"
+                >
+                  📋 Copy
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-base leading-relaxed whitespace-pre-wrap break-words">
+                {transcriptionText}
+              </p>
+            </CardContent>
+          </Card>
         )}
 
         {!transcribing && !transcriptionError && !transcriptionText && (
-          <div style={{
-            padding: "20px",
-            backgroundColor: "#f5f5f5",
-            borderRadius: "8px",
-            textAlign: "center",
-            color: "#999"
-          }}>
-            <p style={{ margin: 0 }}>No transcription yet. Hold FN key to record and transcribe.</p>
-          </div>
+          <Card className="bg-muted">
+            <CardContent className="pt-6 text-center text-muted-foreground">
+              <p>No transcription yet. Hold FN key to record and transcribe.</p>
+            </CardContent>
+          </Card>
         )}
       </div>
     </main>

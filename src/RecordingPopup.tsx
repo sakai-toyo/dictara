@@ -19,8 +19,8 @@ function RecordingPopup() {
   }, []);
 
   return (
-    <div className="popup-container">
-      <div className="popup-content">
+    <div className="w-screen h-screen flex items-center justify-center bg-transparent overflow-hidden rounded-full font-sans">
+      <div className="w-full h-full bg-red-500 rounded-full flex items-center justify-center shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
       </div>
     </div>
   );

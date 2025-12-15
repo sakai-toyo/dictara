@@ -28,3 +28,6 @@ audio
 
 # Environment variables (contains secrets!)
 .env
+
+# TanStack Router generated files
+src/routeTree.gen.ts
