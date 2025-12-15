@@ -27,7 +27,7 @@
         "transparent": true,
         "alwaysOnTop": true,
         "resizable": false,
-        "visible": true,
+        "visible": false,
         "url": "recording-popup",
         "shadow": false
       }

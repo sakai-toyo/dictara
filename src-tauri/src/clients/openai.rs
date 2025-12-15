@@ -101,7 +101,7 @@ impl OpenAIClient {
                 "[OpenAI Client] Audio too short: {}ms < {}ms",
                 duration_ms, MIN_AUDIO_DURATION_MS
             );
-            return Err(TranscriptionError::AudioTooShort { duration_ms });
+            return Ok("".to_string());
         }
 
         // Check if file exists
@@ -128,18 +128,20 @@ impl OpenAIClient {
 
         println!("[OpenAI Client] File size: {} bytes", file_size);
 
-        let api_key = std::env::var("OPENAI_API_KEY")
-            .map_err(|_| TranscriptionError::ApiKeyMissing)?;
+        let api_key =
+            std::env::var("OPENAI_API_KEY").map_err(|_| TranscriptionError::ApiKeyMissing)?;
 
         let model = "gpt-4o-transcribe";
 
         // Build multipart form
         let form = reqwest::blocking::multipart::Form::new()
             .file("file", &file_path)
-            .map_err(|e| TranscriptionError::IoError(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!("Failed to read file: {}", e)
-            )))?
+            .map_err(|e| {
+                TranscriptionError::IoError(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    format!("Failed to read file: {}", e),
+                ))
+            })?
             .text("model", model)
             .text("temperature", "0.0")
             .text("prompt", "If input is empty do not return anything")
@@ -161,8 +163,13 @@ impl OpenAIClient {
         // Check response status
         if !response.status().is_success() {
             let status = response.status();
-            let error_text = response.text().unwrap_or_else(|_| "Unknown error".to_string());
-            eprintln!("[OpenAI Client] API error response ({}): {}", status, error_text);
+            let error_text = response
+                .text()
+                .unwrap_or_else(|_| "Unknown error".to_string());
+            eprintln!(
+                "[OpenAI Client] API error response ({}): {}",
+                status, error_text
+            );
             return Err(TranscriptionError::ApiError(format!(
                 "API returned status {}: {}",
                 status, error_text
@@ -175,10 +182,7 @@ impl OpenAIClient {
             TranscriptionError::ApiError(format!("Failed to parse response: {}", e))
         })?;
 
-        let text = json["text"]
-            .as_str()
-            .unwrap_or("")
-            .to_string();
+        let text = json["text"].as_str().unwrap_or("").to_string();
 
         println!(
             "[OpenAI Client] Transcription successful: {} characters",

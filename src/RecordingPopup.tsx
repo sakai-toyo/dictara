@@ -19,9 +19,10 @@ function RecordingPopup() {
   }, []);
 
   return (
-    <div className="w-screen h-screen flex items-center justify-center bg-transparent overflow-hidden rounded-full font-sans">
-      <div className="w-full h-full bg-red-500 rounded-full flex items-center justify-center shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
-      </div>
+    <div className="w-screen h-screen flex bg-gray-950 overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.3)] font-sans">
+      <div className="w-[60px] shrink-0 bg-yellow-400 flex items-center justify-center"></div>
+      <div className="flex-1 bg-green-400 flex items-center justify-center text-white text-4xl"></div>
+      <div className="w-[60px] shrink-0 bg-red-400 flex items-center justify-center"></div>
     </div>
   );
 }

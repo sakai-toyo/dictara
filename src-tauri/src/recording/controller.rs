@@ -6,6 +6,7 @@ use tokio::sync::mpsc::Receiver;
 use crate::clients::openai::OpenAIClient;
 use crate::error::Error;
 use crate::recording::{audio_recorder::AudioRecorder, commands::RecordingCommand, Recording};
+use crate::ui::window::{close_recording_popup, open_recording_popup};
 
 // Event payload for recording-stopped
 #[derive(Clone, Serialize)]
@@ -82,6 +83,7 @@ impl Controller {
                     }
 
                     if let Err(e) = self.handle_stop(current_recording.take().unwrap()) {
+                        self.state = ControllerState::Ready;
                         eprintln!("[Controller] Error stopping recording: {:?}", e);
                     }
                     self.state = ControllerState::Ready;
@@ -101,10 +103,8 @@ impl Controller {
         }
 
         // Show recording popup window
-        if let Some(window) = self.app_handle.get_webview_window("recording-popup") {
-            if let Err(e) = window.show() {
-                eprintln!("[Controller] Failed to show recording popup: {}", e);
-            }
+        if let Err(e) = open_recording_popup(&self.app_handle) {
+            eprintln!("[Controller] Failed to open recording popup: {}", e);
         }
 
         self.app_handle.emit("recording-started", ())?;
@@ -124,7 +124,9 @@ impl Controller {
             recording_result.duration_ms,
         )?;
 
-        crate::clipboard_paste::auto_paste_text_cgevent(&text)?;
+        if !text.is_empty() {
+            crate::clipboard_paste::auto_paste_text_cgevent(&text)?;
+        }
 
         // Restore tray icon to default state
         if let Err(e) = crate::ui::tray::set_default_icon(&self.app_handle) {
@@ -132,15 +134,14 @@ impl Controller {
         }
 
         // Hide recording popup window
-        if let Some(window) = self.app_handle.get_webview_window("recording-popup") {
-            if let Err(e) = window.hide() {
-                eprintln!("[Controller] Failed to hide recording popup: {}", e);
-            }
+        if let Err(e) = close_recording_popup(&self.app_handle) {
+            eprintln!("[Controller] Failed to close recording popup: {}", e);
         }
 
-        self.app_handle.emit("recording-stopped", RecordingStoppedPayload {
-            text: text.clone(),
-        })?;
+        self.app_handle.emit(
+            "recording-stopped",
+            RecordingStoppedPayload { text: text.clone() },
+        )?;
 
         Ok(())
     }
