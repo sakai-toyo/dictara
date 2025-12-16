@@ -1,8 +1,67 @@
+use std::sync::mpsc;
 use tauri::{Manager, Monitor};
+
+type AnyError = Box<dyn std::error::Error + Send + Sync>;
 
 const POPUP_WIDTH: u32 = 112;
 const POPUP_HEIGHT: u32 = 100;
 const BOTTOM_MARGIN: i32 = 100;
+
+/// Show a window without stealing focus (macOS only).
+/// Uses `orderFront:` instead of `makeKeyAndOrderFront:` to avoid activating the app.
+#[cfg(target_os = "macos")]
+fn show_window_without_focus(window: &tauri::WebviewWindow) -> Result<(), AnyError> {
+    use objc2::runtime::AnyObject;
+    use objc2::msg_send;
+    use objc2_app_kit::{NSWorkspace, NSApplicationActivationOptions};
+    use std::ptr;
+
+    println!("[Window] show_window_without_focus: getting ns_window...");
+
+    // Capture the currently frontmost app so we can restore focus after showing our popup.
+    let frontmost_app = NSWorkspace::sharedWorkspace().frontmostApplication();
+
+    // Get the raw NSWindow pointer from Tauri
+    let ns_window_ptr = match window.ns_window() {
+        Ok(ptr) => {
+            println!("[Window] Got ns_window pointer");
+            ptr as *mut AnyObject
+        }
+        Err(e) => {
+            eprintln!("[Window] Failed to get ns_window: {:?}, falling back to show()", e);
+            window.show()?;
+            return Ok(());
+        }
+    };
+
+    println!("[Window] Calling native macOS methods...");
+
+    // Safety: ns_window_ptr is a valid NSWindow pointer from Tauri
+    unsafe {
+        // First, make the window visible (setIsVisible:YES doesn't activate)
+        let _: () = msg_send![ns_window_ptr, setIsVisible: true];
+        println!("[Window] setIsVisible done");
+        // Then bring to front without making key (orderFront: vs makeKeyAndOrderFront:)
+        let _: () = msg_send![ns_window_ptr, orderFront: ptr::null::<AnyObject>()];
+        println!("[Window] orderFront done");
+    }
+
+    // Give focus back to whoever had it before we showed the popup.
+    if let Some(app) = frontmost_app {
+        let app_handle = window.app_handle();
+        let _ = app_handle.run_on_main_thread(move || {
+            let _ = app.activateWithOptions(NSApplicationActivationOptions(0));
+        });
+    }
+
+    Ok(())
+}
+
+#[cfg(not(target_os = "macos"))]
+fn show_window_without_focus(window: &tauri::WebviewWindow) -> Result<(), AnyError> {
+    window.show()?;
+    Ok(())
+}
 
 /// Find the monitor containing the cursor position.
 ///
@@ -45,9 +104,44 @@ fn get_monitor_at_cursor(app_handle: &tauri::AppHandle) -> Option<Monitor> {
     None
 }
 
+fn run_on_main_thread_sync<T, F>(
+    app_handle: &tauri::AppHandle,
+    f: F,
+) -> Result<T, AnyError>
+where
+    T: Send + 'static,
+    F: FnOnce() -> Result<T, AnyError> + Send + 'static,
+{
+    let (tx, rx) = mpsc::channel();
+    let app_handle_clone = app_handle.clone();
+
+    // macOS AppKit APIs (NSWindow) must run on the main thread; wrap the work and
+    // shuttle the result back through a channel so callers can stay synchronous.
+    app_handle_clone.run_on_main_thread(move || {
+        let _ = tx.send(f());
+    })?;
+
+    rx.recv()
+        .unwrap_or_else(|_| Err("Failed to receive result from main thread task".into()))
+}
+
 pub fn open_recording_popup(
     app_handle: &tauri::AppHandle,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), AnyError> {
+    let app_handle_for_closure = app_handle.clone();
+    run_on_main_thread_sync(app_handle, move || open_recording_popup_inner(&app_handle_for_closure))
+}
+
+pub fn close_recording_popup(
+    app_handle: &tauri::AppHandle,
+) -> Result<(), AnyError> {
+    let app_handle_for_closure = app_handle.clone();
+    run_on_main_thread_sync(app_handle, move || close_recording_popup_inner(&app_handle_for_closure))
+}
+
+fn open_recording_popup_inner(
+    app_handle: &tauri::AppHandle,
+) -> Result<(), AnyError> {
     if let Some(window) = app_handle.get_webview_window("recording-popup") {
         // Set size
         if let Err(e) = window.set_size(tauri::Size::Logical(tauri::LogicalSize {
@@ -87,9 +181,9 @@ pub fn open_recording_popup(
             eprintln!("[Window] Failed to get monitor at cursor or primary monitor");
         }
 
-        if let Err(e) = window.show() {
+        if let Err(e) = show_window_without_focus(&window) {
             eprintln!("[Window] Failed to show recording popup: {}", e);
-            return Err(Box::new(e));
+            return Err(e);
         }
     } else {
         return Err("Recording popup window not found".into());
@@ -98,9 +192,9 @@ pub fn open_recording_popup(
     Ok(())
 }
 
-pub fn close_recording_popup(
+fn close_recording_popup_inner(
     app_handle: &tauri::AppHandle,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), AnyError> {
     if let Some(window) = app_handle.get_webview_window("recording-popup") {
         if let Err(e) = window.hide() {
             eprintln!("[Window] Failed to hide recording popup: {}", e);

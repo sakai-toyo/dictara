@@ -28,6 +28,7 @@
         "alwaysOnTop": true,
         "resizable": false,
         "visible": false,
+        "focusable": false,
         "url": "recording-popup",
         "shadow": false
       }
