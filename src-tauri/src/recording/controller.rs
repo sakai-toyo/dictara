@@ -2,10 +2,15 @@ use serde::Serialize;
 use std::path::PathBuf;
 use tauri::{Emitter, Manager};
 use tokio::sync::mpsc::Receiver;
+use std::sync::{
+    atomic::{AtomicU8, Ordering},
+    Arc,
+};
 
 use crate::clients::openai::OpenAIClient;
 use crate::error::Error;
 use crate::recording::{audio_recorder::AudioRecorder, commands::RecordingCommand, Recording};
+use crate::sound_player;
 use crate::ui::window::{close_recording_popup, open_recording_popup};
 
 // Event payload for recording-stopped
@@ -14,12 +19,14 @@ pub struct RecordingStoppedPayload {
     pub text: String,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 enum ControllerState {
     /// Controller is ready to start recording
     Ready,
     /// Controller is currently recording
     Recording,
+    /// Recording is locked - Fn release will be ignored
+    RecordingLocked,
 }
 
 pub struct Controller {
@@ -28,6 +35,7 @@ pub struct Controller {
     openai_client: OpenAIClient,
     app_handle: tauri::AppHandle,
     state: ControllerState,
+    shared_state: Arc<AtomicU8>,
 }
 
 impl Controller {
@@ -35,8 +43,11 @@ impl Controller {
         command_rx: Receiver<RecordingCommand>,
         app_handle: tauri::AppHandle,
         openai_client: OpenAIClient,
+        shared_state: Arc<AtomicU8>,
     ) -> Self {
         let audio_recorder = AudioRecorder::new(app_handle.clone());
+
+        shared_state.store(0, Ordering::Relaxed);
 
         Controller {
             command_rx,
@@ -44,6 +55,7 @@ impl Controller {
             openai_client,
             app_handle,
             state: ControllerState::Ready,
+            shared_state,
         }
     }
 
@@ -56,52 +68,73 @@ impl Controller {
 
         while let Some(command) = self.command_rx.blocking_recv() {
             match command {
-                RecordingCommand::Start => {
-                    if self.state != ControllerState::Ready {
-                        println!("[Controller] Duplicate Start command received");
-                        continue;
-                    }
-                    self.state = ControllerState::Recording;
-                    match self.handle_start() {
-                        Ok(recording) => {
-                            current_recording = Some(recording);
+                RecordingCommand::FnDown => {
+                    match self.state {
+                        ControllerState::Ready => {
+                            // Start recording
+                            self.set_state(ControllerState::Recording);
+                            match self.handle_start() {
+                                Ok(recording) => current_recording = Some(recording),
+                                Err(e) => {
+                                    eprintln!("[Controller] Error starting recording: {:?}", e);
+                                    self.set_state(ControllerState::Ready);
+                                }
+                            }
                         }
-                        Err(e) => {
-                            eprintln!("[Controller] Error starting recording: {:?}", e);
-                            self.state = ControllerState::Ready;
+                        ControllerState::RecordingLocked => {
+                            // Stop locked recording
+                            if let Some(rec) = current_recording.take() {
+                                if let Err(e) = self.handle_stop(rec) {
+                                    eprintln!("[Controller] Error stopping recording: {:?}", e);
+                                }
+                            }
+                            self.set_state(ControllerState::Ready);
+                        }
+                        _ => {
+                            println!("[Controller] FnDown ignored in Recording state");
                         }
                     }
                 }
-                RecordingCommand::Stop => {
-                    if self.state != ControllerState::Recording {
-                        println!("[Controller] Duplicate Stop command received");
-                        continue;
+                RecordingCommand::FnUp => {
+                    match self.state {
+                        ControllerState::Recording => {
+                            // Stop recording normally
+                            if let Some(rec) = current_recording.take() {
+                                if let Err(e) = self.handle_stop(rec) {
+                                    eprintln!("[Controller] Error stopping recording: {:?}", e);
+                                }
+                            }
+                            self.set_state(ControllerState::Ready);
+                        }
+                        _ => {
+                            println!("[Controller] FnUp ignored (Ready or RecordingLocked state)");
+                        }
                     }
-                    if current_recording.is_none() {
-                        println!("[Controller] No recording to stop");
-                        continue;
+                }
+                RecordingCommand::Lock => {
+                    match self.state {
+                        ControllerState::Recording => {
+                            // Lock the recording
+                            self.set_state(ControllerState::RecordingLocked);
+                            // Play start sound to confirm lock
+                            sound_player::play_start();
+                            println!("[Controller] Recording locked - FnUp will be ignored");
+                        }
+                        _ => {
+                            println!("[Controller] Lock ignored (not in Recording state)");
+                        }
                     }
-
-                    if let Err(e) = self.handle_stop(current_recording.take().unwrap()) {
-                        self.state = ControllerState::Ready;
-                        eprintln!("[Controller] Error stopping recording: {:?}", e);
-                    }
-                    self.state = ControllerState::Ready;
                 }
                 RecordingCommand::Cancel => {
-                    if self.state != ControllerState::Recording {
-                        println!("[Controller] Cancel command received but not recording");
-                        continue;
+                    // Cancel works in both Recording and RecordingLocked states
+                    if self.state != ControllerState::Ready {
+                        if let Some(rec) = current_recording.take() {
+                            if let Err(e) = self.handle_cancel(rec) {
+                                eprintln!("[Controller] Error cancelling recording: {:?}", e);
+                            }
+                        }
+                        self.set_state(ControllerState::Ready);
                     }
-                    if current_recording.is_none() {
-                        println!("[Controller] No recording to cancel");
-                        continue;
-                    }
-
-                    if let Err(e) = self.handle_cancel(current_recording.take().unwrap()) {
-                        eprintln!("[Controller] Error cancelling recording: {:?}", e);
-                    }
-                    self.state = ControllerState::Ready;
                 }
             }
         }
@@ -111,6 +144,9 @@ impl Controller {
 
     fn handle_start(&self) -> Result<Recording, Error> {
         println!("[Controller] Received Start command");
+
+        // Play start sound
+        sound_player::play_start();
 
         // Update tray icon to recording state
         if let Err(e) = crate::ui::tray::set_recording_icon(&self.app_handle) {
@@ -131,6 +167,9 @@ impl Controller {
 
     fn handle_stop(&self, recording: Recording) -> Result<(), Error> {
         println!("[Controller] Received Stop command");
+
+        // Play stop sound
+        sound_player::play_stop();
 
         let recording_result = recording.stop()?;
 
@@ -191,5 +230,15 @@ impl Controller {
 
         println!("[Controller] Recording cancelled successfully");
         Ok(())
+    }
+
+    fn set_state(&mut self, new_state: ControllerState) {
+        self.state = new_state;
+        let state_value = match new_state {
+            ControllerState::Ready => 0,
+            ControllerState::Recording => 1,
+            ControllerState::RecordingLocked => 2,
+        };
+        self.shared_state.store(state_value, Ordering::Relaxed);
     }
 }

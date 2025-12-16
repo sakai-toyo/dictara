@@ -2,10 +2,12 @@
 /// These are sent through channels (NOT Tauri events) for zero-overhead internal communication
 #[derive(Debug, Clone)]
 pub enum RecordingCommand {
-    /// Start a new recording
-    Start,
-    /// Stop the current recording and transcribe
-    Stop,
+    /// Fn key pressed
+    FnDown,
+    /// Fn key released
+    FnUp,
+    /// Space key pressed - lock the recording
+    Lock,
     /// Cancel the current recording without transcribing
     Cancel,
 }

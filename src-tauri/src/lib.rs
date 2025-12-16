@@ -5,6 +5,7 @@ mod events;
 mod keyboard_listener;
 mod recording;
 mod setup;
+mod sound_player;
 mod tauri_commands;
 mod ui;
 

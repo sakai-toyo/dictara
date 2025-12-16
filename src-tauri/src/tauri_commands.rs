@@ -30,8 +30,8 @@ pub fn restart_app(app: tauri::AppHandle) {
 
 #[tauri::command]
 pub fn stop_recording(sender: State<RecordingCommandSender>) -> Result<(), String> {
-    sender.sender.blocking_send(RecordingCommand::Stop)
-        .map_err(|e| format!("Failed to send Stop command: {}", e))?;
+    sender.sender.blocking_send(RecordingCommand::FnUp)
+        .map_err(|e| format!("Failed to send FnUp command: {}", e))?;
 
     Ok(())
 }

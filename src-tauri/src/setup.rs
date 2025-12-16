@@ -4,7 +4,7 @@ use crate::{
     recording::{Controller, RecordingCommand},
     ui::{menu::build_menu, tray::TrayIconState, window},
 };
-use std::sync::Mutex;
+use std::sync::{atomic::AtomicU8, Arc, Mutex};
 use tauri::Manager;
 use tokio::sync::mpsc;
 
@@ -47,6 +47,7 @@ pub fn setup_app(app: &mut tauri::App<tauri::Wry>) -> Result<(), Box<dyn std::er
 
     // Create channel for recording commands (KeyListener → Controller)
     let (command_tx, command_rx) = mpsc::channel::<RecordingCommand>(100);
+    let recording_state = Arc::new(AtomicU8::new(0));
 
     // Clone sender for Tauri state (mpsc::Sender is Clone + Send + Sync)
     let command_sender_state = RecordingCommandSender {
@@ -58,6 +59,7 @@ pub fn setup_app(app: &mut tauri::App<tauri::Wry>) -> Result<(), Box<dyn std::er
         command_rx,
         app.app_handle().clone(),
         openai_client,
+        recording_state.clone(),
     );
 
     // Spawn controller in blocking thread (cpal::Stream is not Send)
@@ -69,8 +71,7 @@ pub fn setup_app(app: &mut tauri::App<tauri::Wry>) -> Result<(), Box<dyn std::er
     app.manage(command_sender_state);
 
     // Start keyboard listener with command sender
-    let _listener = KeyListener::start(command_tx);
-
+    let _listener = KeyListener::start(command_tx, recording_state);
 
     let menu = build_menu(app)?;
 
@@ -104,13 +105,13 @@ pub fn setup_app(app: &mut tauri::App<tauri::Wry>) -> Result<(), Box<dyn std::er
     };
     app.manage(tray_state);
 
-    // Debug: Open recording popup on startup
-    #[cfg(debug_assertions)]
-    {
-        if let Err(e) = window::open_recording_popup(&app.app_handle()) {
-            eprintln!("[Debug] Failed to open recording popup: {}", e);
-        }
-    }
+    // // Debug: Open recording popup on startup
+    // #[cfg(debug_assertions)]
+    // {
+    //     if let Err(e) = window::open_recording_popup(&app.app_handle()) {
+    //         eprintln!("[Debug] Failed to open recording popup: {}", e);
+    //     }
+    // }
 
     Ok(())
 }

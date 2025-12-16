@@ -144,7 +144,7 @@ impl OpenAIClient {
             })?
             .text("model", model)
             .text("temperature", "0.0")
-            .text("prompt", "If input is empty do not return anything")
+            .text("prompt", "If input is empty do not return anything.")
             .text("response_format", "json");
 
         // Call OpenAI API
