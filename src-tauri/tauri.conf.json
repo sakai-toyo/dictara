@@ -13,12 +13,6 @@
     "macOSPrivateApi": true,
     "windows": [
       {
-        "title": "typefree",
-        "width": 800,
-        "height": 600,
-        "visible": false
-      },
-      {
         "label": "recording-popup",
         "title": "Recording",
         "width": 100,
@@ -48,7 +42,9 @@
       "icons/icon.ico"
     ],
     "macOS": {
-      "infoPlist": "NSMicrophoneUsageDescription=TypeFree needs microphone access to record audio when you press the FN key."
+      "infoPlist": "NSMicrophoneUsageDescription=TypeFree needs microphone access to record audio when you press the FN key.",
+      "entitlements": "Entitlements.plist",
+      "signingIdentity": "Apple Development"
     }
   }
 }

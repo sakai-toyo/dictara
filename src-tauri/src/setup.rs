@@ -25,20 +25,22 @@ pub fn setup_app(app: &mut tauri::App<tauri::Wry>) -> Result<(), Box<dyn std::er
         }
     }
 
-    // Initialize OpenAI client
-    let openai_client = match OpenAIClient::new() {
-        Ok(client) => {
-            println!("✅ OpenAI client initialized successfully");
-            client
-        }
-        Err(e) => {
-            eprintln!("⚠️  Failed to initialize OpenAI client: {}", e);
-            eprintln!("    Transcription will be disabled.");
-            eprintln!("    Set OPENAI_API_KEY in .env file to enable transcription.");
-            eprintln!("    Application cannot start without OpenAI client.");
-            return Err(format!("Failed to initialize OpenAI client: {}", e).into());
-        }
-    };
+    #[cfg(target_os = "macos")]
+    {
+        // Keep the app running in the background
+        app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+    }
+
+    // Initialize OpenAI client (always succeeds, key checked at transcription time)
+    let openai_client = OpenAIClient::new();
+
+    // Check if API key is configured
+    let needs_api_key = !OpenAIClient::has_api_key();
+    if needs_api_key {
+        println!("⚠️  No OpenAI API key configured. Opening Preferences...");
+    } else {
+        println!("✅ OpenAI client initialized successfully");
+    }
 
     // ========================================
     // CHANNEL-BASED ARCHITECTURE WITH CONTROLLER
@@ -87,8 +89,10 @@ pub fn setup_app(app: &mut tauri::App<tauri::Wry>) -> Result<(), Box<dyn std::er
                     // TODO: Implement About dialog
                 }
                 "preferences" => {
-                    println!("Preferences clicked - placeholder");
-                    // TODO: Implement Preferences window
+                    println!("Preferences clicked");
+                    if let Err(e) = window::open_preferences_window(app) {
+                        eprintln!("Failed to open preferences window: {}", e);
+                    }
                 }
                 "quit" => {
                     println!("Quit clicked");
@@ -105,13 +109,12 @@ pub fn setup_app(app: &mut tauri::App<tauri::Wry>) -> Result<(), Box<dyn std::er
     };
     app.manage(tray_state);
 
-    // // Debug: Open recording popup on startup
-    // #[cfg(debug_assertions)]
-    // {
-    //     if let Err(e) = window::open_recording_popup(&app.app_handle()) {
-    //         eprintln!("[Debug] Failed to open recording popup: {}", e);
-    //     }
-    // }
+    // Open preferences window if no API key is configured
+    if needs_api_key {
+        if let Err(e) = window::open_preferences_window(&app.app_handle()) {
+            eprintln!("Failed to open preferences window: {}", e);
+        }
+    }
 
     Ok(())
 }

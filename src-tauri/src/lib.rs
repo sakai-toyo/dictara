@@ -2,6 +2,7 @@ mod clients;
 mod clipboard_paste;
 mod error;
 mod events;
+mod keychain;
 mod keyboard_listener;
 mod recording;
 mod setup;
@@ -22,7 +23,11 @@ pub fn run() {
             tauri_commands::request_accessibility_permission,
             tauri_commands::restart_app,
             tauri_commands::stop_recording,
-            tauri_commands::cancel_recording
+            tauri_commands::cancel_recording,
+            tauri_commands::save_openai_key,
+            tauri_commands::load_openai_key,
+            tauri_commands::delete_openai_key,
+            tauri_commands::test_openai_key
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

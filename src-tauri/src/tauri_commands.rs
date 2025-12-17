@@ -1,3 +1,4 @@
+use crate::keychain;
 use crate::recording::RecordingCommand;
 use crate::setup::RecordingCommandSender;
 use tauri::State;
@@ -42,4 +43,47 @@ pub fn cancel_recording(sender: State<RecordingCommandSender>) -> Result<(), Str
         .map_err(|e| format!("Failed to send Cancel command: {}", e))?;
 
     Ok(())
+}
+
+#[tauri::command]
+pub fn save_openai_key(key: String) -> Result<(), String> {
+    println!("[Command] save_openai_key called with key length: {}", key.len());
+    keychain::save_api_key(&key).map_err(|e| {
+        let error = format!("Failed to save API key: {}", e);
+        eprintln!("[Command] {}", error);
+        error
+    })
+}
+
+#[tauri::command]
+pub fn load_openai_key() -> Result<Option<String>, String> {
+    println!("[Command] load_openai_key called");
+    keychain::load_api_key().map_err(|e| {
+        let error = format!("Failed to load API key: {}", e);
+        eprintln!("[Command] {}", error);
+        error
+    })
+}
+
+#[tauri::command]
+pub fn delete_openai_key() -> Result<(), String> {
+    println!("[Command] delete_openai_key called");
+    keychain::delete_api_key().map_err(|e| {
+        let error = format!("Failed to delete API key: {}", e);
+        eprintln!("[Command] {}", error);
+        error
+    })
+}
+
+#[tauri::command]
+pub fn test_openai_key(key: String) -> Result<bool, String> {
+    println!("[Command] test_openai_key called");
+
+    use crate::clients::openai::OpenAIClient;
+
+    OpenAIClient::test_api_key(&key).map_err(|e| {
+        let error = format!("Failed to test API key: {}", e);
+        eprintln!("[Command] {}", error);
+        error
+    })
 }

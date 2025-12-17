@@ -3,6 +3,7 @@ use async_openai::{
     types::{AudioResponseFormat, CreateTranscriptionRequestArgs},
     Client,
 };
+use crate::keychain;
 use std::path::PathBuf;
 
 const MIN_AUDIO_DURATION_MS: u64 = 500; // Minimum 0.5 seconds
@@ -64,16 +65,82 @@ impl Clone for OpenAIClient {
 
 impl OpenAIClient {
     /// Create a new OpenAI client
-    /// Reads API key from OPENAI_API_KEY environment variable
-    pub fn new() -> Result<Self, TranscriptionError> {
-        // Check if API key is set
-        if std::env::var("OPENAI_API_KEY").is_err() {
-            return Err(TranscriptionError::ApiKeyMissing);
+    /// Loads API key from macOS Keychain and sets it in environment
+    /// Always succeeds - key will be checked at transcription time
+    pub fn new() -> Self {
+        println!("[OpenAI Client] Initializing client");
+
+        // Try to load API key from keychain
+        match keychain::load_api_key() {
+            Ok(Some(api_key)) => {
+                println!("[OpenAI Client] ✅ API key loaded from keychain");
+                std::env::set_var("OPENAI_API_KEY", &api_key);
+            }
+            Ok(None) => {
+                println!("[OpenAI Client] ⚠️  No API key found in keychain");
+            }
+            Err(e) => {
+                eprintln!("[OpenAI Client] ❌ Failed to load API key from keychain: {:?}", e);
+            }
         }
 
-        Ok(OpenAIClient {
+        OpenAIClient {
             client: Client::new(),
-        })
+        }
+    }
+
+    /// Check if an API key is configured in the keychain
+    pub fn has_api_key() -> bool {
+        match keychain::load_api_key() {
+            Ok(Some(_)) => true,
+            _ => false,
+        }
+    }
+
+    /// Test if an API key is valid by calling the OpenAI /v1/models endpoint
+    ///
+    /// # Arguments
+    /// * `key` - The API key to test
+    ///
+    /// # Returns
+    /// * `Ok(true)` - Key is valid
+    /// * `Ok(false)` - Key is invalid (401 Unauthorized)
+    /// * `Err(TranscriptionError)` - Network or other API error
+    pub fn test_api_key(key: &str) -> Result<bool, TranscriptionError> {
+        println!("[OpenAI Client] Testing API key validity...");
+
+        let client = reqwest::blocking::Client::new();
+        let response = client
+            .get("https://api.openai.com/v1/models")
+            .bearer_auth(key)
+            .send()
+            .map_err(|e| {
+                eprintln!("[OpenAI Client] Request failed: {}", e);
+                TranscriptionError::ApiError(format!("Request failed: {}", e))
+            })?;
+
+        let status = response.status();
+        println!("[OpenAI Client] API test response status: {}", status);
+
+        if status.is_success() {
+            println!("[OpenAI Client] ✅ API key is valid");
+            Ok(true)
+        } else if status.as_u16() == 401 {
+            println!("[OpenAI Client] ❌ API key is invalid (401 Unauthorized)");
+            Ok(false)
+        } else {
+            let error_text = response
+                .text()
+                .unwrap_or_else(|_| "Unknown error".to_string());
+            eprintln!(
+                "[OpenAI Client] Unexpected API response ({}): {}",
+                status, error_text
+            );
+            Err(TranscriptionError::ApiError(format!(
+                "API returned status {}: {}",
+                status, error_text
+            )))
+        }
     }
 
     /// Transcribe audio file to text (blocking/synchronous version)
@@ -128,8 +195,23 @@ impl OpenAIClient {
 
         println!("[OpenAI Client] File size: {} bytes", file_size);
 
-        let api_key =
-            std::env::var("OPENAI_API_KEY").map_err(|_| TranscriptionError::ApiKeyMissing)?;
+        // Load API key from keychain each time (in case it was just saved)
+        let api_key = match keychain::load_api_key() {
+            Ok(Some(key)) => {
+                println!("[OpenAI Client] Using API key from keychain");
+                // Set in env for this request
+                std::env::set_var("OPENAI_API_KEY", &key);
+                key
+            }
+            Ok(None) => {
+                eprintln!("[OpenAI Client] No API key configured");
+                return Err(TranscriptionError::ApiKeyMissing);
+            }
+            Err(e) => {
+                eprintln!("[OpenAI Client] Failed to load API key: {:?}", e);
+                return Err(TranscriptionError::ApiKeyMissing);
+            }
+        };
 
         let model = "gpt-4o-transcribe";
 
@@ -246,7 +328,8 @@ impl OpenAIClient {
 
         println!("[OpenAI Client] File size: {} bytes", file_size);
 
-        let model = "gpt-4o-transcribe"; // "whisper-1"
+        // let model = "gpt-4o-transcribe"; // "whisper-1"
+        let model = "whisper-1";
 
         // Build transcription request
         let request = CreateTranscriptionRequestArgs::default()

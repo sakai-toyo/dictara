@@ -11,9 +11,9 @@ const BOTTOM_MARGIN: i32 = 100;
 /// Uses `orderFront:` instead of `makeKeyAndOrderFront:` to avoid activating the app.
 #[cfg(target_os = "macos")]
 fn show_window_without_focus(window: &tauri::WebviewWindow) -> Result<(), AnyError> {
-    use objc2::runtime::AnyObject;
     use objc2::msg_send;
-    use objc2_app_kit::{NSWorkspace, NSApplicationActivationOptions};
+    use objc2::runtime::AnyObject;
+    use objc2_app_kit::{NSApplicationActivationOptions, NSWorkspace};
     use std::ptr;
 
     println!("[Window] show_window_without_focus: getting ns_window...");
@@ -28,7 +28,10 @@ fn show_window_without_focus(window: &tauri::WebviewWindow) -> Result<(), AnyErr
             ptr as *mut AnyObject
         }
         Err(e) => {
-            eprintln!("[Window] Failed to get ns_window: {:?}, falling back to show()", e);
+            eprintln!(
+                "[Window] Failed to get ns_window: {:?}, falling back to show()",
+                e
+            );
             window.show()?;
             return Ok(());
         }
@@ -104,10 +107,7 @@ fn get_monitor_at_cursor(app_handle: &tauri::AppHandle) -> Option<Monitor> {
     None
 }
 
-fn run_on_main_thread_sync<T, F>(
-    app_handle: &tauri::AppHandle,
-    f: F,
-) -> Result<T, AnyError>
+fn run_on_main_thread_sync<T, F>(app_handle: &tauri::AppHandle, f: F) -> Result<T, AnyError>
 where
     T: Send + 'static,
     F: FnOnce() -> Result<T, AnyError> + Send + 'static,
@@ -125,23 +125,21 @@ where
         .unwrap_or_else(|_| Err("Failed to receive result from main thread task".into()))
 }
 
-pub fn open_recording_popup(
-    app_handle: &tauri::AppHandle,
-) -> Result<(), AnyError> {
+pub fn open_recording_popup(app_handle: &tauri::AppHandle) -> Result<(), AnyError> {
     let app_handle_for_closure = app_handle.clone();
-    run_on_main_thread_sync(app_handle, move || open_recording_popup_inner(&app_handle_for_closure))
+    run_on_main_thread_sync(app_handle, move || {
+        open_recording_popup_inner(&app_handle_for_closure)
+    })
 }
 
-pub fn close_recording_popup(
-    app_handle: &tauri::AppHandle,
-) -> Result<(), AnyError> {
+pub fn close_recording_popup(app_handle: &tauri::AppHandle) -> Result<(), AnyError> {
     let app_handle_for_closure = app_handle.clone();
-    run_on_main_thread_sync(app_handle, move || close_recording_popup_inner(&app_handle_for_closure))
+    run_on_main_thread_sync(app_handle, move || {
+        close_recording_popup_inner(&app_handle_for_closure)
+    })
 }
 
-fn open_recording_popup_inner(
-    app_handle: &tauri::AppHandle,
-) -> Result<(), AnyError> {
+fn open_recording_popup_inner(app_handle: &tauri::AppHandle) -> Result<(), AnyError> {
     if let Some(window) = app_handle.get_webview_window("recording-popup") {
         // Set size
         if let Err(e) = window.set_size(tauri::Size::Logical(tauri::LogicalSize {
@@ -192,9 +190,7 @@ fn open_recording_popup_inner(
     Ok(())
 }
 
-fn close_recording_popup_inner(
-    app_handle: &tauri::AppHandle,
-) -> Result<(), AnyError> {
+fn close_recording_popup_inner(app_handle: &tauri::AppHandle) -> Result<(), AnyError> {
     if let Some(window) = app_handle.get_webview_window("recording-popup") {
         if let Err(e) = window.hide() {
             eprintln!("[Window] Failed to hide recording popup: {}", e);
@@ -203,6 +199,31 @@ fn close_recording_popup_inner(
     } else {
         return Err("Recording popup window not found".into());
     }
+
+    Ok(())
+}
+
+pub fn open_preferences_window(app_handle: &tauri::AppHandle) -> Result<(), AnyError> {
+    let (width, height) = (450.0, 500.0);
+
+    let window = match app_handle.get_webview_window("preferences") {
+        Some(w) => w,
+        None => tauri::WebviewWindowBuilder::new(
+            app_handle,
+            "preferences",
+            tauri::WebviewUrl::App("preferences".into()),
+        )
+        .title("Preferences")
+        .inner_size(width, height)
+        .min_inner_size(width, height)
+        .max_inner_size(width, height)
+        .visible(false)
+        .build()?,
+    };
+
+    window.show()?;
+    window.set_focus()?;
+    window.center()?;
 
     Ok(())
 }
