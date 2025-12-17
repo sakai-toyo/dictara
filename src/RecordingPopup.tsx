@@ -2,6 +2,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { Square, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Mirage } from "ldrs/react";
+import "ldrs/react/Mirage.css";
 import "./RecordingPopup.css";
 
 function RecordingPopup() {
@@ -104,8 +106,12 @@ function RecordingPopup() {
       }
 
       { transcribing &&
-          <div className="flex w-full h-full text-gray-500 justify-center items-center text-base">
-          ━━━━━━
+          <div className="flex w-full h-full justify-center items-center">
+            <Mirage
+              size="60"
+              speed="2.5"
+              color="#9ca3af"
+            />
           </div>
       }
     </div>
