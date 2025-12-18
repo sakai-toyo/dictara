@@ -1,7 +1,8 @@
 use crate::keychain;
 use crate::recording::RecordingCommand;
-use crate::setup::RecordingCommandSender;
+use crate::setup::{AudioLevelChannel, RecordingCommandSender};
 use tauri::State;
+use tauri::ipc::Channel;
 
 #[tauri::command]
 pub fn check_accessibility_permission() -> bool {
@@ -86,4 +87,14 @@ pub fn test_openai_key(key: String) -> Result<bool, String> {
         eprintln!("[Command] {}", error);
         error
     })
+}
+
+#[tauri::command]
+pub fn register_audio_level_channel(
+    channel: Channel<f32>,
+    state: State<AudioLevelChannel>,
+) -> Result<(), String> {
+    let mut channel_lock = state.channel.lock().unwrap();
+    *channel_lock = Some(channel);
+    Ok(())
 }

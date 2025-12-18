@@ -1,10 +1,11 @@
 use serde::Serialize;
 use std::path::PathBuf;
 use tauri::{Emitter, Manager};
+use tauri::ipc::Channel;
 use tokio::sync::mpsc::Receiver;
 use std::sync::{
     atomic::{AtomicU8, Ordering},
-    Arc,
+    Arc, Mutex,
 };
 
 use crate::clients::openai::OpenAIClient;
@@ -36,6 +37,7 @@ pub struct Controller {
     app_handle: tauri::AppHandle,
     state: ControllerState,
     shared_state: Arc<AtomicU8>,
+    audio_level_channel: Arc<Mutex<Option<Channel<f32>>>>,
 }
 
 impl Controller {
@@ -44,6 +46,7 @@ impl Controller {
         app_handle: tauri::AppHandle,
         openai_client: OpenAIClient,
         shared_state: Arc<AtomicU8>,
+        audio_level_channel: Arc<Mutex<Option<Channel<f32>>>>,
     ) -> Self {
         let audio_recorder = AudioRecorder::new(app_handle.clone());
 
@@ -56,6 +59,7 @@ impl Controller {
             app_handle,
             state: ControllerState::Ready,
             shared_state,
+            audio_level_channel,
         }
     }
 
@@ -160,7 +164,10 @@ impl Controller {
 
         self.app_handle.emit("recording-started", ())?;
 
-        let recording = self.audio_recorder.start()?;
+        // Get the audio level channel if one is registered
+        let level_channel = self.audio_level_channel.lock().unwrap().clone();
+
+        let recording = self.audio_recorder.start(level_channel)?;
 
         Ok(recording)
     }

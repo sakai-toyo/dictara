@@ -6,10 +6,15 @@ use crate::{
 };
 use std::sync::{atomic::AtomicU8, Arc, Mutex};
 use tauri::Manager;
+use tauri::ipc::Channel;
 use tokio::sync::mpsc;
 
 pub struct RecordingCommandSender {
     pub sender: mpsc::Sender<RecordingCommand>,
+}
+
+pub struct AudioLevelChannel {
+    pub channel: Arc<Mutex<Option<Channel<f32>>>>,
 }
 
 pub fn setup_app(app: &mut tauri::App<tauri::Wry>) -> Result<(), Box<dyn std::error::Error>> {
@@ -56,12 +61,18 @@ pub fn setup_app(app: &mut tauri::App<tauri::Wry>) -> Result<(), Box<dyn std::er
         sender: command_tx.clone(),
     };
 
+    // Create audio level channel state
+    let audio_level_channel = AudioLevelChannel {
+        channel: Arc::new(Mutex::new(None)),
+    };
+
     // Initialize controller with OpenAI client
     let controller = Controller::new(
         command_rx,
         app.app_handle().clone(),
         openai_client,
         recording_state.clone(),
+        audio_level_channel.channel.clone(),
     );
 
     // Spawn controller in blocking thread (cpal::Stream is not Send)
@@ -69,8 +80,9 @@ pub fn setup_app(app: &mut tauri::App<tauri::Wry>) -> Result<(), Box<dyn std::er
         controller.run();
     });
 
-    // Store sender in app state for Tauri commands
+    // Store sender and audio level channel in app state for Tauri commands
     app.manage(command_sender_state);
+    app.manage(audio_level_channel);
 
     // Start keyboard listener with command sender
     let _listener = KeyListener::start(command_tx, recording_state);

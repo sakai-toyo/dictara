@@ -6,6 +6,7 @@ use std::io::BufWriter;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
+use tauri::ipc::Channel;
 
 #[derive(Debug, Clone)]
 pub struct RecordingResult {
@@ -113,7 +114,7 @@ impl AudioRecorder {
     }
 
     /// Start a new recording session
-    pub fn start(&self) -> Result<Recording, RecorderError> {
+    pub fn start(&self, level_channel: Option<Channel<f32>>) -> Result<Recording, RecorderError> {
         println!("[AudioRecorder] Starting recording...");
 
         // Ensure audio directory exists
@@ -158,10 +159,10 @@ impl AudioRecorder {
         let err_writer_clone = Arc::clone(&writer);
 
         let stream = match config.sample_format() {
-            cpal::SampleFormat::I8 => build_input_stream::<i8>(&device, &config.into(), writer_clone)?,
-            cpal::SampleFormat::I16 => build_input_stream::<i16>(&device, &config.into(), writer_clone)?,
-            cpal::SampleFormat::I32 => build_input_stream::<i32>(&device, &config.into(), writer_clone)?,
-            cpal::SampleFormat::F32 => build_input_stream::<f32>(&device, &config.into(), writer_clone)?,
+            cpal::SampleFormat::I8 => build_input_stream::<i8>(&device, &config.into(), writer_clone, level_channel)?,
+            cpal::SampleFormat::I16 => build_input_stream::<i16>(&device, &config.into(), writer_clone, level_channel)?,
+            cpal::SampleFormat::I32 => build_input_stream::<i32>(&device, &config.into(), writer_clone, level_channel)?,
+            cpal::SampleFormat::F32 => build_input_stream::<f32>(&device, &config.into(), writer_clone, level_channel)?,
             _ => {
                 return Err(RecorderError::DeviceError)
             }
@@ -206,10 +207,12 @@ fn build_input_stream<T>(
     device: &cpal::Device,
     config: &cpal::StreamConfig,
     writer: Arc<Mutex<WavWriter<BufWriter<File>>>>,
+    level_channel: Option<Channel<f32>>,
 ) -> Result<cpal::Stream, RecorderError>
 where
-    T: Sample + FromSample<i16> + std::fmt::Debug + cpal::SizedSample,
+    T: Sample + FromSample<i16> + FromSample<f32> + std::fmt::Debug + cpal::SizedSample,
     i16: FromSample<T>,
+    f32: FromSample<T>,
 {
     let err_fn = |err| {
         eprintln!("[Audio Recorder] Stream error: {}", err);
@@ -218,7 +221,7 @@ where
     let stream = device.build_input_stream(
         config,
         move |data: &[T], _: &cpal::InputCallbackInfo| {
-            write_input_data::<T>(data, &writer);
+            write_input_data::<T>(data, &writer, &level_channel);
         },
         err_fn,
         None,
@@ -227,11 +230,40 @@ where
     Ok(stream)
 }
 
-fn write_input_data<T>(input: &[T], writer: &Arc<Mutex<WavWriter<BufWriter<File>>>>)
+fn write_input_data<T>(
+    input: &[T],
+    writer: &Arc<Mutex<WavWriter<BufWriter<File>>>>,
+    level_channel: &Option<Channel<f32>>,
+)
 where
     T: Sample,
     i16: FromSample<T>,
+    f32: FromSample<T>,
 {
+    // Calculate RMS (Root Mean Square) for audio level visualization
+    if let Some(channel) = level_channel {
+        if !input.is_empty() {
+            // Convert samples to f32 and calculate RMS
+            let sum_of_squares: f32 = input.iter()
+                .map(|&sample| {
+                    let sample_f32: f32 = sample.to_sample();
+                    sample_f32 * sample_f32
+                })
+                .sum();
+
+            let rms = (sum_of_squares / input.len() as f32).sqrt();
+
+            // Normalize to 0.0-1.0 range (audio samples are typically -1.0 to 1.0)
+            // Multiply by a high gain factor to make visualization more visible
+            // Boost from 3x to 100x for better visibility with quiet microphones
+            let level = (rms * 100.0).min(1.0);
+
+            // Send level to frontend (ignore errors if channel is closed)
+            let _ = channel.send(level);
+        }
+    }
+
+    // Write audio data to WAV file
     if let Ok(mut guard) = writer.lock() {
         for &sample in input.iter() {
             let sample_i16: i16 = sample.to_sample();

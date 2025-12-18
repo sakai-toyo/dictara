@@ -27,7 +27,8 @@ pub fn run() {
             tauri_commands::save_openai_key,
             tauri_commands::load_openai_key,
             tauri_commands::delete_openai_key,
-            tauri_commands::test_openai_key
+            tauri_commands::test_openai_key,
+            tauri_commands::register_audio_level_channel
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

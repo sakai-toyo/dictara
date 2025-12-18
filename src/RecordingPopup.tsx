@@ -1,14 +1,63 @@
-import { invoke } from "@tauri-apps/api/core";
+import { Channel, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { Square, X } from "lucide-react";
-import { useEffect, useState } from "react";
 import { Mirage } from "ldrs/react";
 import "ldrs/react/Mirage.css";
+import { Square, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import "./RecordingPopup.css";
 
 function RecordingPopup() {
   const [recording, setRecording] = useState(true);
   const [transcribing, setTranscribing] = useState(false);
+  const [audioLevel, setAudioLevel] = useState(0);
+  const [smoothedLevel, setSmoothedLevel] = useState(0);
+  const animationFrameRef = useRef<number | undefined>(undefined);
+
+  // Smooth the audio level using requestAnimationFrame
+  useEffect(() => {
+    const animate = () => {
+      setSmoothedLevel((current) => {
+        const diff = audioLevel - current;
+        // Fast response to increases, slower decay
+        const speed = diff > 0 ? 0.3 : 0.15;
+        return current + diff * speed;
+      });
+      animationFrameRef.current = requestAnimationFrame(animate);
+    };
+
+    animationFrameRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [audioLevel]);
+
+  useEffect(() => {
+    // Set up audio level channel
+    const setupAudioLevelChannel = async () => {
+      const audioLevelChannel = new Channel<number>();
+
+      audioLevelChannel.onmessage = (level: number) => {
+        console.log("[Popup] Audio level received:", level);
+        setAudioLevel(level);
+      };
+
+      try {
+        await invoke("register_audio_level_channel", {
+          channel: audioLevelChannel,
+        });
+      } catch (error) {
+        console.error("[Popup] Failed to register audio level channel:", error);
+      }
+
+
+      console.log("[Popup] Audio level channel registered");
+    };
+
+    setupAudioLevelChannel();
+  }, []);
 
   useEffect(() => {
     // Set up event listeners
@@ -74,32 +123,39 @@ function RecordingPopup() {
     }
   };
 
+  // Calculate inset shadow based on audio level
+  // Creates a white glow from the edges inward when speaking
+  const getInsetShadow = (level: number) => {
+    // Adjust the spread and opacity based on audio level
+    const spreadSize = Math.round(level * 60); // 0-60px spread
+    const opacity = level * 0.3; // 0-0.3 opacity for subtle effect
+    return `inset 0 0 ${spreadSize}px rgba(255, 255, 255, ${opacity})`;
+  };
+
   return (
-    <div className="w-screen h-screen rounded-2xl p-[1px] border-[2px] border-gray-600 bg-gray-800 overflow-hidden font-sans">
+    <div className="w-screen h-screen rounded-2xl border-[2px] border-gray-600 bg-gray-800 overflow-hidden font-sans">
 
       { recording &&
-        <div className="flex flex-col w-full h-full justify-between items-center py-3 px-4">
-          {/* Top - Audio Level Indicator */}
-          <div className="flex text-gray-400 justify-center items-center text-xl font-bold">
-            ▄ ▆ ▄
-          </div>
-
-          {/* Bottom - Button Row */}
-          <div className="flex gap-[10px]">
+        <div
+          className="flex items-center justify-center w-full h-full bg-gray-800"
+          style={{ boxShadow: getInsetShadow(smoothedLevel) }}
+        >
+          {/* Button Row */}
+          <div className="flex gap-2">
             {/* Cancel Button */}
             <button
               onClick={handleCancel}
-              className="w-[35px] h-[35px] rounded-lg shrink-0 bg-gray-700 hover:bg-gray-600 flex items-center justify-center transition-colors cursor-pointer"
+              className="w-6 h-6 aspect-square rounded-lg shrink-0 bg-gray-700 hover:bg-gray-600 flex items-center justify-center transition-colors cursor-pointer"
             >
-              <X className="w-5 h-5 text-white" strokeWidth={2.5} />
+              <X className="w-4 h-4 text-white" strokeWidth={2.5} />
             </button>
 
             {/* Stop Recording Button */}
             <button
               onClick={handleStop}
-              className="w-[35px] h-[35px] rounded-lg shrink-0 bg-red-500 hover:bg-red-600 flex items-center justify-center transition-colors cursor-pointer"
+              className="w-6 h-6 aspect-square rounded-lg shrink-0 bg-red-500 hover:bg-red-600 flex items-center justify-center transition-colors cursor-pointer"
             >
-              <Square className="w-4 h-4 text-white" fill="white" strokeWidth={0} />
+              <Square className="w-3 h-3 text-white" fill="white" strokeWidth={0} />
             </button>
           </div>
         </div>

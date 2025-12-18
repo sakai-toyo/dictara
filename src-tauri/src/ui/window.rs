@@ -3,8 +3,8 @@ use tauri::{Manager, Monitor};
 
 type AnyError = Box<dyn std::error::Error + Send + Sync>;
 
-const POPUP_WIDTH: u32 = 112;
-const POPUP_HEIGHT: u32 = 100;
+const POPUP_WIDTH: u32 = 80;
+const POPUP_HEIGHT: u32 = 48;
 const BOTTOM_MARGIN: i32 = 100;
 
 /// Show a window without stealing focus (macOS only).
