@@ -4,7 +4,7 @@ This guide will help you set up and test the new OpenAI audio transcription feat
 
 ## 🎯 What Was Implemented
 
-Your TypeFree app now automatically transcribes recorded audio using OpenAI's Whisper API!
+Your Dictara app now automatically transcribes recorded audio using OpenAI's Whisper API!
 
 **Flow:**
 1. User presses FN key → Recording starts

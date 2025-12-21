@@ -126,7 +126,7 @@ function App() {
   if (checkingPermission) {
     return (
       <main className="container mx-auto flex flex-col items-center justify-center min-h-screen p-4">
-        <h1 className="text-3xl font-bold mb-4">TypeFree - FN Key Monitor</h1>
+        <h1 className="text-3xl font-bold mb-4">Dictara - FN Key Monitor</h1>
         <p className="text-muted-foreground">Checking permissions...</p>
       </main>
     );
@@ -135,7 +135,7 @@ function App() {
   if (!hasPermission) {
     return (
       <main className="container mx-auto flex flex-col items-center justify-center min-h-screen p-4">
-        <h1 className="text-3xl font-bold mb-8">TypeFree - FN Key Monitor</h1>
+        <h1 className="text-3xl font-bold mb-8">Dictara - FN Key Monitor</h1>
 
         <Alert variant="destructive" className="max-w-2xl">
           <AlertTitle className="text-xl mb-4">⚠️ Permission Required</AlertTitle>
@@ -147,7 +147,7 @@ function App() {
               <ol className="list-decimal list-inside space-y-1">
                 <li>Click "Open System Settings" below</li>
                 <li>In Privacy & Security → Accessibility</li>
-                <li>Find "typefree" in the list</li>
+                <li>Find "Dictara" in the list</li>
                 <li>Toggle the switch ON</li>
                 <li>Click "Restart App" below</li>
               </ol>
@@ -169,7 +169,7 @@ function App() {
 
   return (
     <main className="container mx-auto flex flex-col items-center min-h-screen p-8">
-      <h1 className="text-3xl font-bold mb-8">TypeFree - FN Key Monitor</h1>
+      <h1 className="text-3xl font-bold mb-8">Dictara - FN Key Monitor</h1>
 
       {error && (
         <Alert variant="destructive" className="mb-6 max-w-2xl">

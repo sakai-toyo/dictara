@@ -1,6 +1,6 @@
 use keyring::Entry;
 
-const SERVICE: &str = "zinjvi.typefree";
+const SERVICE: &str = "app.dictara";
 
 // Account names for different providers
 const OPENAI_ACCOUNT: &str = "openai_api_key";

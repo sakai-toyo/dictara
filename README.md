@@ -1,4 +1,4 @@
-# typefree
+# Dictara
 
 A cross-platform desktop application built with Tauri + React + TypeScript.
 
