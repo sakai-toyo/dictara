@@ -283,7 +283,7 @@ impl OpenAIClient {
 
                 // Generate 1 second silent audio
                 let ffmpeg_result = std::process::Command::new("ffmpeg")
-                    .args(&[
+                    .args([
                         "-f",
                         "lavfi",
                         "-i",
@@ -317,8 +317,7 @@ impl OpenAIClient {
                 let form = reqwest::blocking::multipart::Form::new()
                     .file("file", &test_audio_path)
                     .map_err(|e| {
-                        TranscriptionError::IoError(std::io::Error::new(
-                            std::io::ErrorKind::Other,
+                        TranscriptionError::IoError(std::io::Error::other(
                             format!("Failed to read test file: {}", e),
                         ))
                     })?
@@ -425,8 +424,7 @@ impl OpenAIClient {
         let mut form = reqwest::blocking::multipart::Form::new()
             .file("file", &file_path)
             .map_err(|e| {
-                TranscriptionError::IoError(std::io::Error::new(
-                    std::io::ErrorKind::Other,
+                TranscriptionError::IoError(std::io::Error::other(
                     format!("Failed to read file: {}", e),
                 ))
             })?

@@ -16,7 +16,7 @@ use objc2_core_graphics::{
 #[cfg(target_os = "macos")]
 use std::{ffi::c_void, ptr::NonNull};
 
-#[cfg(any(not(target_os = "macos")))]
+#[cfg(not(target_os = "macos"))]
 use rdev::{listen, Event, EventType, Key, ListenError};
 #[cfg(target_os = "macos")]
 use rdev::{listen, EventType, Key};
@@ -33,7 +33,7 @@ impl KeyListener {
     ) -> Self {
         #[cfg(target_os = "macos")]
         {
-            return Self::start_macos(command_tx, recording_state);
+            Self::start_macos(command_tx, recording_state)
         }
 
         #[cfg(not(target_os = "macos"))]

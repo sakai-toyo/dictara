@@ -1,16 +1,17 @@
 use derive_more::From;
 
 #[derive(Debug, From)]
+#[allow(dead_code)]
 pub enum Error {
     #[from]
-    RecorderError(crate::recording::RecorderError),
+    Recorder(crate::recording::RecorderError),
 
     #[from]
-    TranscriptionError(crate::clients::openai::TranscriptionError),
+    Transcription(crate::clients::openai::TranscriptionError),
 
     #[from]
-    ClipboardPasteError(crate::clipboard_paste::ClipboardPasteError),
+    ClipboardPaste(crate::clipboard_paste::ClipboardPasteError),
 
     #[from]
-    TauriError(tauri::Error),
+    Tauri(tauri::Error),
 }

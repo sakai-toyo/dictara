@@ -180,7 +180,7 @@ pub fn setup_app(app: &mut tauri::App<tauri::Wry>) -> Result<(), Box<dyn std::er
 
     // Open preferences window if configuration needed
     if needs_configuration {
-        if let Err(e) = window::open_preferences_window(&app.app_handle()) {
+        if let Err(e) = window::open_preferences_window(app.app_handle()) {
             eprintln!("Failed to open preferences window: {}", e);
         }
     }

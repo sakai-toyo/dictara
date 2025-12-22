@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "be:check": "cd src-tauri && cargo check",
+    "be:lint": "cd src-tauri && cargo clippy -- -D warnings",
     "be:format": "cd src-tauri && cargo fmt"
   },
   "dependencies": {

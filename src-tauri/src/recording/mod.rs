@@ -8,7 +8,7 @@ use std::time::SystemTime;
 // Public exports
 pub use audio_recorder::{cleanup_recording_file, RecorderError, Recording};
 pub use commands::RecordingCommand;
-pub use controller::{Controller, RecordingErrorPayload, RecordingStoppedPayload};
+pub use controller::Controller;
 
 /// Stores the last recording attempt for paste retry functionality
 #[derive(Debug, Clone)]
@@ -30,6 +30,7 @@ impl LastRecording {
         }
     }
 
+    #[allow(dead_code)]
     pub fn can_paste(&self) -> bool {
         self.text.is_some()
     }

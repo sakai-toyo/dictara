@@ -41,7 +41,6 @@ impl Recording {
         let file_path = audio_dir.join(&self.filename);
 
         // Finalize WAV file
-        let mut file_size = 0u64;
         if let Ok(writer_mutex) = Arc::try_unwrap(self.writer) {
             if let Ok(writer) = writer_mutex.into_inner() {
                 let result = writer.finalize();
@@ -62,7 +61,7 @@ impl Recording {
 
         // Get file size
         if let Ok(metadata) = fs::metadata(&file_path) {
-            file_size = metadata.len();
+            let file_size = metadata.len();
             let size_mb = file_size as f64 / (1024.0 * 1024.0);
             println!(
                 "[Recording] File size: {} bytes ({:.2} MB)",
@@ -328,6 +327,7 @@ fn generate_filename() -> String {
     format!("recording_{}.wav", timestamp)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn build_input_stream<T>(
     device: &cpal::Device,
     config: &cpal::StreamConfig,
@@ -448,10 +448,9 @@ fn write_input_data<T>(
 
         // Convert to mono if needed (average stereo channels)
         let mono_samples = if needs_channel_conversion && resampled.len() >= 2 {
-            let output_frames = resampled[0].len();
-            let mut mono = Vec::with_capacity(output_frames);
-            for i in 0..output_frames {
-                let mixed = (resampled[0][i] + resampled[1][i]) / 2.0;
+            let mut mono = Vec::with_capacity(resampled[0].len());
+            for (left, right) in resampled[0].iter().zip(resampled[1].iter()) {
+                let mixed = (left + right) / 2.0;
                 mono.push(mixed);
             }
             mono

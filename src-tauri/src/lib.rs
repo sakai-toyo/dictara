@@ -2,7 +2,6 @@ mod clients;
 mod clipboard_paste;
 mod config;
 mod error;
-mod events;
 mod keyboard_listener;
 mod keychain;
 mod recording;
@@ -19,7 +18,7 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
-            return setup::setup_app(app);
+            setup::setup_app(app)
         })
         .invoke_handler(tauri::generate_handler![
             tauri_commands::check_accessibility_permission,
