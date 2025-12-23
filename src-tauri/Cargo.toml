@@ -1,6 +1,6 @@
 [package]
 name = "dictara"
-version = "0.1.7"
+version = "0.1.8"
 description = "Dictara - Speach to text app"
 authors = ["Dictara Contributors"]
 license = "MIT"
@@ -43,7 +43,7 @@ rodio = "0.19"
 keyring = { version = "3", features = ["apple-native"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-objc2-core-graphics = "0.3.1"  # For direct CGEvent posting (Option 3)
+objc2-core-graphics = "0.3.1"  # For direct CGEvent posting
 objc2-core-foundation = "0.3.1"
 objc2-app-kit = { version = "0.3.1", features = ["NSWindow", "NSResponder", "NSRunningApplication", "NSWorkspace"] }
 objc2 = "0.6"

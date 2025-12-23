@@ -1,7 +1,10 @@
+#[cfg(not(debug_assertions))]
+use std::sync::Mutex;
 use std::sync::{
     atomic::{AtomicBool, AtomicU8, Ordering},
     Arc,
 };
+#[cfg(not(debug_assertions))]
 use std::time::Duration;
 use tauri::Manager;
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
@@ -11,8 +14,23 @@ use tauri_plugin_updater::UpdaterExt;
 #[cfg(not(debug_assertions))]
 const UPDATE_CHECK_INTERVAL: Duration = Duration::from_secs(30 * 60);
 
+/// Idle check interval: how often to check if user is idle
+#[cfg(not(debug_assertions))]
+const IDLE_CHECK_INTERVAL: Duration = Duration::from_secs(10);
+
+/// Required idle time before installing update (1 minute)
+#[cfg(not(debug_assertions))]
+const REQUIRED_IDLE_SECONDS: f64 = 60.0;
+
 /// Recording states (matches controller.rs)
 const STATE_READY: u8 = 0;
+
+/// Stores a downloaded update ready for installation
+#[cfg(not(debug_assertions))]
+struct PendingInstall {
+    bytes: Vec<u8>,
+    version: String,
+}
 
 /// Shared state for the updater
 pub struct UpdaterState {
@@ -22,6 +40,9 @@ pub struct UpdaterState {
     pending_update: AtomicBool,
     /// Reference to the recording state (shared with Controller)
     recording_state: Arc<AtomicU8>,
+    /// Downloaded update bytes waiting for installation
+    #[cfg(not(debug_assertions))]
+    pending_install: Mutex<Option<PendingInstall>>,
 }
 
 impl UpdaterState {
@@ -31,6 +52,7 @@ impl UpdaterState {
             checking: AtomicBool::new(false),
             pending_update: AtomicBool::new(false),
             recording_state,
+            pending_install: Mutex::new(None),
         }
     }
 
@@ -58,13 +80,45 @@ impl UpdaterState {
     fn set_pending_update(&self, value: bool) {
         self.pending_update.store(value, Ordering::Relaxed);
     }
+
+    /// Check if there's a downloaded update ready to install
+    #[cfg(not(debug_assertions))]
+    fn has_pending_install(&self) -> bool {
+        self.pending_install.lock().unwrap().is_some()
+    }
+
+    /// Store downloaded update for later installation
+    #[cfg(not(debug_assertions))]
+    fn set_pending_install(&self, bytes: Vec<u8>, version: String) {
+        *self.pending_install.lock().unwrap() = Some(PendingInstall { bytes, version });
+    }
+
+    /// Take the pending install (removes it from storage)
+    #[cfg(not(debug_assertions))]
+    fn take_pending_install(&self) -> Option<PendingInstall> {
+        self.pending_install.lock().unwrap().take()
+    }
 }
 
-/// Start periodic update checking
+/// Get the number of seconds since the last user input event (keyboard/mouse)
+#[cfg(all(target_os = "macos", not(debug_assertions)))]
+fn get_idle_seconds() -> f64 {
+    // Direct FFI call to CoreGraphics
+    #[link(name = "CoreGraphics", kind = "framework")]
+    extern "C" {
+        fn CGEventSourceSecondsSinceLastEventType(state_id: i32, event_type: u32) -> f64;
+    }
+
+    // kCGEventSourceStateHIDSystemState = 1
+    // kCGAnyInputEventType = 0xFFFFFFFF (u32::MAX)
+    unsafe { CGEventSourceSecondsSinceLastEventType(1, u32::MAX) }
+}
+
+/// Start periodic update checking and idle-based installation
 /// Should be called from setup after the app is initialized
 #[cfg(not(debug_assertions))]
 pub fn start_periodic_update_check(app_handle: tauri::AppHandle, updater_state: Arc<UpdaterState>) {
-    println!("[Updater] Starting periodic update check (every 4 hours)");
+    println!("[Updater] Starting periodic update check (every 30 minutes for testing)");
 
     // Initial check after a short delay
     let handle = app_handle.clone();
@@ -72,24 +126,61 @@ pub fn start_periodic_update_check(app_handle: tauri::AppHandle, updater_state: 
     tauri::async_runtime::spawn(async move {
         // Wait 5 seconds for app to fully initialize
         tokio::time::sleep(Duration::from_secs(5)).await;
-        check_for_updates_internal(handle, state).await;
+        check_and_download_update(handle, state).await;
     });
 
-    // Periodic checks
+    // Periodic checks for new updates
+    let handle = app_handle.clone();
+    let state = updater_state.clone();
     tauri::async_runtime::spawn(async move {
         loop {
             tokio::time::sleep(UPDATE_CHECK_INTERVAL).await;
             println!("[Updater] Periodic update check triggered");
-            check_for_updates_internal(app_handle.clone(), updater_state.clone()).await;
+            check_and_download_update(handle.clone(), state.clone()).await;
+        }
+    });
+
+    // Idle monitor - checks if user is idle and installs pending update
+    tauri::async_runtime::spawn(async move {
+        loop {
+            tokio::time::sleep(IDLE_CHECK_INTERVAL).await;
+
+            // Only proceed if there's a pending install
+            if !updater_state.has_pending_install() {
+                continue;
+            }
+
+            // Don't install if app is busy
+            if updater_state.is_busy() {
+                println!("[Updater] App busy, deferring install");
+                continue;
+            }
+
+            // Check idle time
+            #[cfg(target_os = "macos")]
+            {
+                let idle_seconds = get_idle_seconds();
+                if idle_seconds >= REQUIRED_IDLE_SECONDS {
+                    println!(
+                        "[Updater] User idle for {:.0}s (>= {:.0}s), installing update...",
+                        idle_seconds, REQUIRED_IDLE_SECONDS
+                    );
+                    install_pending_update(&app_handle, &updater_state);
+                }
+            }
         }
     });
 }
 
-/// Check for updates (internal implementation)
-async fn check_for_updates_internal(
-    app_handle: tauri::AppHandle,
-    updater_state: Arc<UpdaterState>,
-) {
+/// Check for updates and download if available (but don't install yet)
+#[cfg(not(debug_assertions))]
+async fn check_and_download_update(app_handle: tauri::AppHandle, updater_state: Arc<UpdaterState>) {
+    // Skip if already has a pending install
+    if updater_state.has_pending_install() {
+        println!("[Updater] Already have a downloaded update, skipping check");
+        return;
+    }
+
     // Skip if app is busy
     if updater_state.is_busy() {
         println!("[Updater] App is busy (recording), deferring update check");
@@ -105,17 +196,18 @@ async fn check_for_updates_internal(
 
     updater_state.set_checking(true);
 
-    let result = check_and_install_silently(&app_handle, &updater_state).await;
+    let result = download_update_only(&app_handle, &updater_state).await;
 
     if let Err(e) = result {
-        eprintln!("[Updater] Update check failed: {:?}", e);
+        eprintln!("[Updater] Update check/download failed: {:?}", e);
     }
 
     updater_state.set_checking(false);
 }
 
-/// Check for updates and install silently (no user prompt)
-async fn check_and_install_silently(
+/// Check for updates and download (without installing)
+#[cfg(not(debug_assertions))]
+async fn download_update_only(
     app_handle: &tauri::AppHandle,
     updater_state: &UpdaterState,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -129,20 +221,21 @@ async fn check_and_install_silently(
         return Ok(());
     };
 
-    println!("[Updater] Update available: {}", update.version);
+    let version = update.version.clone();
+    println!("[Updater] Update available: {}", version);
 
     // Check if app is busy - defer if so
     if updater_state.is_busy() {
-        println!("[Updater] App is busy, deferring update");
+        println!("[Updater] App is busy, deferring download");
         updater_state.set_pending_update(true);
         return Ok(());
     }
 
-    println!("[Updater] Downloading and installing update silently...");
+    println!("[Updater] Downloading update (will install when user is idle)...");
 
-    // Download and install without prompting
-    update
-        .download_and_install(
+    // Download only (don't install yet)
+    let bytes = update
+        .download(
             |chunk_length, content_length| {
                 println!(
                     "[Updater] Downloaded {} bytes of {:?}",
@@ -155,8 +248,59 @@ async fn check_and_install_silently(
         )
         .await?;
 
-    println!("[Updater] Update installed, restarting app...");
-    app_handle.restart();
+    println!(
+        "[Updater] Update downloaded ({} bytes), waiting for user to be idle...",
+        bytes.len()
+    );
+
+    // Store the downloaded bytes for later installation
+    updater_state.set_pending_install(bytes, version);
+
+    Ok(())
+}
+
+/// Install the pending update (called when user is idle)
+#[cfg(not(debug_assertions))]
+fn install_pending_update(app_handle: &tauri::AppHandle, updater_state: &UpdaterState) {
+    let Some(pending) = updater_state.take_pending_install() else {
+        return;
+    };
+
+    println!(
+        "[Updater] Installing update v{} ({} bytes)...",
+        pending.version,
+        pending.bytes.len()
+    );
+
+    // We need to get the update object again to call install
+    // Since install() is a method on Update, we need to re-fetch it
+    let handle = app_handle.clone();
+    tauri::async_runtime::spawn(async move {
+        let result: Result<(), Box<dyn std::error::Error + Send + Sync>> = async {
+            let updater = handle.updater()?;
+            let update = updater.check().await?;
+
+            let Some(update) = update else {
+                return Err("Update no longer available".into());
+            };
+
+            // Install the downloaded bytes
+            update.install(pending.bytes)?;
+
+            Ok(())
+        }
+        .await;
+
+        match result {
+            Ok(()) => {
+                println!("[Updater] Update installed, restarting app...");
+                handle.restart();
+            }
+            Err(e) => {
+                eprintln!("[Updater] Failed to install update: {:?}", e);
+            }
+        }
+    });
 }
 
 /// Manual update check triggered from frontend
@@ -187,7 +331,7 @@ pub async fn check_for_updates(
     result
 }
 
-/// Manual check implementation
+/// Manual check implementation - this one installs immediately (user requested)
 async fn manual_check_and_prompt(
     app_handle: &tauri::AppHandle,
     show_no_update_message: bool,
@@ -258,7 +402,7 @@ async fn manual_check_and_prompt(
 
     println!("[Updater] Downloading and installing update...");
 
-    // Download and install
+    // Download and install immediately (user explicitly requested)
     update
         .download_and_install(
             |chunk_length, content_length| {
@@ -285,13 +429,16 @@ pub fn on_recording_finished(app_handle: &tauri::AppHandle) {
             println!("[Updater] Recording finished, checking deferred update");
             state.set_pending_update(false);
 
-            let handle = app_handle.clone();
-            let state_clone = state.inner().clone();
-            tauri::async_runtime::spawn(async move {
-                // Small delay to let the UI settle
-                tokio::time::sleep(Duration::from_secs(2)).await;
-                check_for_updates_internal(handle, state_clone).await;
-            });
+            #[cfg(not(debug_assertions))]
+            {
+                let handle = app_handle.clone();
+                let state_clone = state.inner().clone();
+                tauri::async_runtime::spawn(async move {
+                    // Small delay to let the UI settle
+                    tokio::time::sleep(Duration::from_secs(2)).await;
+                    check_and_download_update(handle, state_clone).await;
+                });
+            }
         }
     }
 }
