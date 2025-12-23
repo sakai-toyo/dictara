@@ -1,7 +1,7 @@
 [package]
 name = "dictara"
-version = "0.1.4"
-description = "A Tauri App"
+version = "0.1.5"
+description = "Dictara - Speach to text app"
 authors = ["Dictara Contributors"]
 license = "MIT"
 edition = "2021"

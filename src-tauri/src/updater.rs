@@ -7,9 +7,9 @@ use tauri::Manager;
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 use tauri_plugin_updater::UpdaterExt;
 
-/// Check interval: 4 hours
+/// Check interval: 30 minutes (for testing - change to 4 hours for production)
 #[cfg(not(debug_assertions))]
-const UPDATE_CHECK_INTERVAL: Duration = Duration::from_secs(4 * 60 * 60);
+const UPDATE_CHECK_INTERVAL: Duration = Duration::from_secs(30 * 60);
 
 /// Recording states (matches controller.rs)
 const STATE_READY: u8 = 0;
@@ -72,7 +72,7 @@ pub fn start_periodic_update_check(app_handle: tauri::AppHandle, updater_state: 
     tauri::async_runtime::spawn(async move {
         // Wait 5 seconds for app to fully initialize
         tokio::time::sleep(Duration::from_secs(5)).await;
-        check_for_updates_internal(handle, state, false).await;
+        check_for_updates_internal(handle, state).await;
     });
 
     // Periodic checks
@@ -80,24 +80,18 @@ pub fn start_periodic_update_check(app_handle: tauri::AppHandle, updater_state: 
         loop {
             tokio::time::sleep(UPDATE_CHECK_INTERVAL).await;
             println!("[Updater] Periodic update check triggered");
-            check_for_updates_internal(app_handle.clone(), updater_state.clone(), false).await;
+            check_for_updates_internal(app_handle.clone(), updater_state.clone()).await;
         }
     });
 }
 
 /// Check for updates (internal implementation)
-///
-/// # Arguments
-/// * `app_handle` - Tauri app handle
-/// * `updater_state` - Shared updater state
-/// * `force` - If true, check even when app is busy (for manual checks)
 async fn check_for_updates_internal(
     app_handle: tauri::AppHandle,
     updater_state: Arc<UpdaterState>,
-    force: bool,
 ) {
-    // Skip if app is busy (unless forced)
-    if updater_state.is_busy() && !force {
+    // Skip if app is busy
+    if updater_state.is_busy() {
         println!("[Updater] App is busy (recording), deferring update check");
         updater_state.set_pending_update(true);
         return;
@@ -111,7 +105,7 @@ async fn check_for_updates_internal(
 
     updater_state.set_checking(true);
 
-    let result = check_and_prompt_update(&app_handle, &updater_state, force).await;
+    let result = check_and_install_silently(&app_handle, &updater_state).await;
 
     if let Err(e) = result {
         eprintln!("[Updater] Update check failed: {:?}", e);
@@ -120,11 +114,10 @@ async fn check_for_updates_internal(
     updater_state.set_checking(false);
 }
 
-/// Check for updates and prompt user if available
-async fn check_and_prompt_update(
+/// Check for updates and install silently (no user prompt)
+async fn check_and_install_silently(
     app_handle: &tauri::AppHandle,
     updater_state: &UpdaterState,
-    force: bool,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     println!("[Updater] Checking for updates...");
 
@@ -138,56 +131,16 @@ async fn check_and_prompt_update(
 
     println!("[Updater] Update available: {}", update.version);
 
-    // Check if app became busy while we were checking
-    if updater_state.is_busy() && !force {
-        println!("[Updater] App became busy, deferring update prompt");
-        updater_state.set_pending_update(true);
-        return Ok(());
-    }
-
-    // Build the message
-    let message = if let Some(body) = &update.body {
-        format!(
-            "Version {} is available!\n\nRelease notes:\n{}",
-            update.version, body
-        )
-    } else {
-        format!("Version {} is available!", update.version)
-    };
-
-    // Show confirmation dialog
-    let should_update = app_handle
-        .dialog()
-        .message(message)
-        .title("Update Available")
-        .kind(MessageDialogKind::Info)
-        .buttons(MessageDialogButtons::OkCancelCustom(
-            "Install & Restart".to_string(),
-            "Later".to_string(),
-        ))
-        .blocking_show();
-
-    if !should_update {
-        println!("[Updater] User declined update");
-        return Ok(());
-    }
-
-    // Double-check busy state before installing
+    // Check if app is busy - defer if so
     if updater_state.is_busy() {
-        println!("[Updater] App is now busy, deferring installation");
-        app_handle
-            .dialog()
-            .message("Cannot update while recording or transcribing. The update will be installed when the operation completes.")
-            .title("Update Deferred")
-            .kind(MessageDialogKind::Info)
-            .blocking_show();
+        println!("[Updater] App is busy, deferring update");
         updater_state.set_pending_update(true);
         return Ok(());
     }
 
-    println!("[Updater] Downloading and installing update...");
+    println!("[Updater] Downloading and installing update silently...");
 
-    // Download and install
+    // Download and install without prompting
     update
         .download_and_install(
             |chunk_length, content_length| {
@@ -337,7 +290,7 @@ pub fn on_recording_finished(app_handle: &tauri::AppHandle) {
             tauri::async_runtime::spawn(async move {
                 // Small delay to let the UI settle
                 tokio::time::sleep(Duration::from_secs(2)).await;
-                check_for_updates_internal(handle, state_clone, false).await;
+                check_for_updates_internal(handle, state_clone).await;
             });
         }
     }
