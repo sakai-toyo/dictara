@@ -152,6 +152,11 @@ async checkForUpdates(showNoUpdateMessage: boolean) : Promise<Result<boolean, st
 /** user-defined events **/
 
 
+export const events = __makeEvents__<{
+recordingStateChanged: RecordingStateChanged
+}>({
+recordingStateChanged: "recording-state-changed"
+})
 
 /** user-defined constants **/
 
@@ -179,7 +184,30 @@ export type OpenAIConfig = { api_key: string }
  * Provider types supported by the application
  */
 export type Provider = "open_ai" | "azure_open_ai"
-export type TAURI_CHANNEL<TSend> = null
+/**
+ * Recording state change event - single event stream for all state transitions
+ */
+export type RecordingStateChanged = 
+/**
+ * Recording has started
+ */
+{ state: "started" } | 
+/**
+ * Recording is being transcribed
+ */
+{ state: "transcribing" } | 
+/**
+ * Recording completed successfully
+ */
+{ state: "stopped"; text: string } | 
+/**
+ * Recording was cancelled by user
+ */
+{ state: "cancelled" } | 
+/**
+ * An error occurred during recording or transcription
+ */
+{ state: "error"; errorType: string; errorMessage: string; userMessage: string; audioFilePath: string | null }
 
 /** tauri-specta globals **/
 

@@ -319,6 +319,39 @@ pub fn cleanup_recording_file(file_path: &str) {
     }
 }
 
+/// Clean up old recording files on app startup
+/// Only deletes files matching pattern: recording_*.wav
+pub fn cleanup_old_recordings(app_handle: &tauri::AppHandle) {
+    let recordings_dir = match app_handle.path().app_cache_dir() {
+        Ok(cache_dir) => cache_dir.join("recordings"),
+        Err(_) => return,
+    };
+
+    let entries = match fs::read_dir(&recordings_dir) {
+        Ok(entries) => entries,
+        Err(_) => return, // Directory doesn't exist yet, nothing to clean
+    };
+
+    let mut cleaned = 0;
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let filename = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+
+        let is_old_recording = filename.starts_with("recording_") && filename.ends_with(".wav");
+        if !is_old_recording {
+            continue;
+        }
+
+        if fs::remove_file(&path).is_ok() {
+            cleaned += 1;
+        }
+    }
+
+    if cleaned > 0 {
+        println!("[Audio Recorder] Cleaned up {} old recording(s)", cleaned);
+    }
+}
+
 fn generate_filename() -> String {
     let timestamp = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)

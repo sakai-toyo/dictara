@@ -1,12 +1,11 @@
-use serde::Serialize;
 use std::path::PathBuf;
 use std::sync::{
     atomic::{AtomicU8, Ordering},
     Arc, Mutex,
 };
 use tauri::ipc::Channel;
-use tauri::Emitter;
 use tauri_plugin_store::StoreExt;
+use tauri_specta::Event;
 use tokio::sync::mpsc::Receiver;
 
 use crate::clients::openai::OpenAIClient;
@@ -15,27 +14,11 @@ use crate::error::Error;
 use crate::recording::{
     audio_recorder::{cleanup_recording_file, AudioRecorder},
     commands::RecordingCommand,
+    events::RecordingStateChanged,
     LastRecordingState, Recording,
 };
-use crate::sound_player;
 use crate::ui::window::{close_recording_popup, open_recording_popup};
 use crate::updater;
-
-// Event payload for recording-stopped
-#[derive(Clone, Serialize)]
-pub struct RecordingStoppedPayload {
-    pub text: String,
-}
-
-// Event payload for recording-error
-#[derive(Clone, Serialize)]
-pub struct RecordingErrorPayload {
-    pub error_type: String,              // "recording" | "transcription"
-    pub error_message: String,           // Technical error for debugging
-    pub user_message: String,            // User-friendly message
-    pub can_retry: bool,                 // Show retry button?
-    pub audio_file_path: Option<String>, // For retry
-}
 
 #[derive(PartialEq, Debug, Copy, Clone)]
 enum ControllerState {
@@ -144,8 +127,6 @@ impl Controller {
                         ControllerState::Recording => {
                             // Lock the recording
                             self.set_state(ControllerState::RecordingLocked);
-                            // Play start sound to confirm lock
-                            sound_player::play_start();
                             println!("[Controller] Recording locked - FnUp will be ignored");
                         }
                         _ => {
@@ -181,15 +162,12 @@ impl Controller {
     fn handle_start(&self) -> Result<Recording, Error> {
         println!("[Controller] Received Start command");
 
-        // Play start sound
-        sound_player::play_start();
-
         // Show recording popup window
         if let Err(e) = open_recording_popup(&self.app_handle) {
             eprintln!("[Controller] Failed to open recording popup: {}", e);
         }
 
-        self.app_handle.emit("recording-started", ())?;
+        RecordingStateChanged::Started.emit(&self.app_handle)?;
 
         // Get the audio level channel if one is registered
         let level_channel = self.audio_level_channel.lock().unwrap().clone();
@@ -200,15 +178,14 @@ impl Controller {
                 eprintln!("[Controller] Error starting recording: {:?}", e);
 
                 // Emit error event to frontend
-                let error_payload = RecordingErrorPayload {
+                let error_event = RecordingStateChanged::Error {
                     error_type: "recording".to_string(),
                     error_message: format!("{:?}", e),
                     user_message: e.user_message(),
-                    can_retry: false, // Recording errors cannot be retried
                     audio_file_path: None,
                 };
 
-                if let Err(emit_err) = self.app_handle.emit("recording-error", error_payload) {
+                if let Err(emit_err) = error_event.emit(&self.app_handle) {
                     eprintln!(
                         "[Controller] Failed to emit recording-error event: {}",
                         emit_err
@@ -225,13 +202,10 @@ impl Controller {
     fn handle_stop(&self, recording: Recording) -> Result<(), Error> {
         println!("[Controller] Received Stop command");
 
-        // Play stop sound
-        sound_player::play_stop();
-
         let recording_result = recording.stop()?;
 
         println!("[Controller] Emitting recording-transcribing event");
-        match self.app_handle.emit("recording-transcribing", ()) {
+        match RecordingStateChanged::Transcribing.emit(&self.app_handle) {
             Ok(_) => println!("[Controller] Successfully emitted recording-transcribing event"),
             Err(e) => eprintln!(
                 "[Controller] Failed to emit recording-transcribing event: {:?}",
@@ -287,10 +261,7 @@ impl Controller {
                     eprintln!("[Controller] Failed to close recording popup: {}", e);
                 }
 
-                self.app_handle.emit(
-                    "recording-stopped",
-                    RecordingStoppedPayload { text: text.clone() },
-                )?;
+                RecordingStateChanged::Stopped { text: text.clone() }.emit(&self.app_handle)?;
 
                 Ok(())
             }
@@ -312,15 +283,14 @@ impl Controller {
 
                 // DON'T close popup - keep it open to show error
                 // Emit error event to frontend
-                let error_payload = RecordingErrorPayload {
+                let error_event = RecordingStateChanged::Error {
                     error_type: "transcription".to_string(),
                     error_message: format!("{}", e),
                     user_message: e.user_message(),
-                    can_retry: e.can_retry(),
                     audio_file_path: Some(recording_result.file_path.clone()),
                 };
 
-                if let Err(emit_err) = self.app_handle.emit("recording-error", error_payload) {
+                if let Err(emit_err) = error_event.emit(&self.app_handle) {
                     eprintln!(
                         "[Controller] Failed to emit recording-error event: {}",
                         emit_err
@@ -347,7 +317,7 @@ impl Controller {
         }
 
         // Emit cancellation event for frontend awareness
-        self.app_handle.emit("recording-cancelled", ())?;
+        RecordingStateChanged::Cancelled.emit(&self.app_handle)?;
 
         println!("[Controller] Recording cancelled successfully");
         Ok(())
@@ -383,7 +353,7 @@ impl Controller {
 
         // Emit transcribing event
         println!("[Controller] Emitting recording-transcribing event for retry");
-        self.app_handle.emit("recording-transcribing", ())?;
+        RecordingStateChanged::Transcribing.emit(&self.app_handle)?;
 
         // Load provider config
         let store = match self.app_handle.store("config.json") {
@@ -433,10 +403,7 @@ impl Controller {
                     eprintln!("[Controller] Failed to close recording popup: {}", e);
                 }
 
-                self.app_handle.emit(
-                    "recording-stopped",
-                    RecordingStoppedPayload { text: text.clone() },
-                )?;
+                RecordingStateChanged::Stopped { text: text.clone() }.emit(&self.app_handle)?;
 
                 Ok(())
             }
@@ -457,15 +424,14 @@ impl Controller {
 
                 // DON'T close popup - keep it open to show error
                 // Emit error event to frontend
-                let error_payload = RecordingErrorPayload {
+                let error_event = RecordingStateChanged::Error {
                     error_type: "transcription".to_string(),
                     error_message: format!("{}", e),
                     user_message: e.user_message(),
-                    can_retry: e.can_retry(),
                     audio_file_path: Some(audio_file_path),
                 };
 
-                if let Err(emit_err) = self.app_handle.emit("recording-error", error_payload) {
+                if let Err(emit_err) = error_event.emit(&self.app_handle) {
                     eprintln!(
                         "[Controller] Failed to emit recording-error event: {}",
                         emit_err

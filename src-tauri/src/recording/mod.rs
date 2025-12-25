@@ -1,12 +1,15 @@
 mod audio_recorder;
 mod commands;
 mod controller;
+pub mod events;
 
 use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 
 // Public exports
-pub use audio_recorder::{cleanup_recording_file, RecorderError, Recording};
+pub use audio_recorder::{
+    cleanup_old_recordings, cleanup_recording_file, RecorderError, Recording,
+};
 pub use commands::RecordingCommand;
 pub use controller::Controller;
 

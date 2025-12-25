@@ -1,10 +1,5 @@
 use crate::config::{AppConfig, AzureOpenAIConfig, OpenAIConfig, Provider};
 use crate::keychain::{self, ProviderAccount};
-use async_openai::{
-    config::OpenAIConfig as AsyncOpenAIConfig,
-    types::{AudioResponseFormat, CreateTranscriptionRequestArgs},
-    Client,
-};
 use std::path::PathBuf;
 
 const MIN_AUDIO_DURATION_MS: u64 = 500; // Minimum 0.5 seconds
@@ -19,7 +14,6 @@ const OPENAI_TRANSCRIPTION_URL: &str = "https://api.openai.com/v1/audio/transcri
 
 #[derive(Debug)]
 pub enum TranscriptionError {
-    AudioTooShort { duration_ms: u64 },
     FileTooLarge { size_bytes: u64 },
     FileNotFound(String),
     ApiError(String),
@@ -36,9 +30,6 @@ impl From<std::io::Error> for TranscriptionError {
 impl std::fmt::Display for TranscriptionError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TranscriptionError::AudioTooShort { duration_ms } => {
-                write!(f, "Audio too short: {}ms (minimum 500ms)", duration_ms)
-            }
             TranscriptionError::FileTooLarge { size_bytes } => {
                 write!(f, "File too large: {} bytes (maximum 25MB)", size_bytes)
             }
@@ -62,12 +53,6 @@ impl TranscriptionError {
     /// Returns a user-friendly error message suitable for display in the UI
     pub fn user_message(&self) -> String {
         match self {
-            TranscriptionError::AudioTooShort { duration_ms } => {
-                format!(
-                    "Recording too short ({}ms). Please speak for at least 0.5 seconds.",
-                    duration_ms
-                )
-            }
             TranscriptionError::FileTooLarge { size_bytes } => {
                 let mb = size_bytes / (1024 * 1024);
                 format!("Audio file too large ({}MB). Maximum is 25MB.", mb)
@@ -92,14 +77,6 @@ impl TranscriptionError {
                 "API key not configured. Please add it in Preferences.".to_string()
             }
         }
-    }
-
-    /// Returns true if this error can be retried
-    pub fn can_retry(&self) -> bool {
-        matches!(
-            self,
-            TranscriptionError::ApiError(_) | TranscriptionError::FileNotFound(_)
-        )
     }
 }
 
@@ -154,25 +131,14 @@ impl ApiConfig {
     }
 }
 
-pub struct OpenAIClient {
-    client: Client<AsyncOpenAIConfig>,
-}
-
-impl Clone for OpenAIClient {
-    fn clone(&self) -> Self {
-        OpenAIClient {
-            client: Client::new(),
-        }
-    }
-}
+#[derive(Clone)]
+pub struct OpenAIClient;
 
 impl OpenAIClient {
     /// Create a new OpenAI client
     pub fn new() -> Self {
         println!("[OpenAI Client] Initializing client");
-        OpenAIClient {
-            client: Client::new(),
-        }
+        OpenAIClient
     }
 
     /// Load API configuration from keychain based on app config
@@ -486,86 +452,5 @@ impl OpenAIClient {
         println!("[OpenAI Client] Text: {}", text);
 
         Ok(text)
-    }
-
-    /// Transcribe audio file to text (async version)
-    ///
-    /// # Arguments
-    /// * `file_path` - Path to the audio file (WAV, MP3, etc.)
-    /// * `duration_ms` - Duration of the recording in milliseconds (for validation)
-    ///
-    /// # Returns
-    /// * `Ok(String)` - Transcribed text
-    /// * `Err(TranscriptionError)` - Error details
-    #[allow(dead_code)]
-    pub async fn transcribe_audio(
-        &self,
-        file_path: PathBuf,
-        duration_ms: u64,
-    ) -> Result<String, TranscriptionError> {
-        println!(
-            "[OpenAI Client] Transcribing: {:?} (duration: {}ms)",
-            file_path, duration_ms
-        );
-
-        // Validate minimum duration
-        if duration_ms < MIN_AUDIO_DURATION_MS {
-            eprintln!(
-                "[OpenAI Client] Audio too short: {}ms < {}ms",
-                duration_ms, MIN_AUDIO_DURATION_MS
-            );
-            return Err(TranscriptionError::AudioTooShort { duration_ms });
-        }
-
-        // Check if file exists
-        if !file_path.exists() {
-            eprintln!("[OpenAI Client] File not found: {:?}", file_path);
-            return Err(TranscriptionError::FileNotFound(
-                file_path.to_string_lossy().to_string(),
-            ));
-        }
-
-        // Check file size
-        let metadata = std::fs::metadata(&file_path)?;
-        let file_size = metadata.len();
-
-        if file_size > MAX_FILE_SIZE_BYTES {
-            eprintln!(
-                "[OpenAI Client] File too large: {} bytes > {} bytes",
-                file_size, MAX_FILE_SIZE_BYTES
-            );
-            return Err(TranscriptionError::FileTooLarge {
-                size_bytes: file_size,
-            });
-        }
-
-        println!("[OpenAI Client] File size: {} bytes", file_size);
-
-        let model = "whisper-1";
-
-        // Build transcription request
-        let request = CreateTranscriptionRequestArgs::default()
-            .file(file_path.to_string_lossy().to_string())
-            .prompt("If input is empty do not return anything")
-            .model(model)
-            .temperature(0.0)
-            .response_format(AudioResponseFormat::Json)
-            .build()
-            .map_err(|e| TranscriptionError::ApiError(format!("Failed to build request: {}", e)))?;
-
-        // Call OpenAI API
-        println!("[OpenAI Client] Sending request to OpenAI API...");
-        let response = self.client.audio().transcribe(request).await.map_err(|e| {
-            eprintln!("[OpenAI Client] API error: {}", e);
-            TranscriptionError::ApiError(format!("{}", e))
-        })?;
-
-        println!(
-            "[OpenAI Client] Transcription successful: {} characters",
-            response.text.len()
-        );
-        println!("[OpenAI Client] Text: {}", response.text);
-
-        Ok(response.text)
     }
 }

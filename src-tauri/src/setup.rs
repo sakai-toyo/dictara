@@ -5,7 +5,9 @@ use crate::{
     config::{self, AzureOpenAIConfig, OpenAIConfig, Provider},
     keyboard_listener::KeyListener,
     keychain::{self, ProviderAccount},
-    recording::{Controller, LastRecording, LastRecordingState, RecordingCommand},
+    recording::{
+        cleanup_old_recordings, Controller, LastRecording, LastRecordingState, RecordingCommand,
+    },
     ui::{menu::build_menu, tray::PasteMenuItemState, window},
 };
 use std::sync::{atomic::AtomicU8, Arc, Mutex};
@@ -24,6 +26,9 @@ pub struct AudioLevelChannel {
 
 pub fn setup_app(app: &mut tauri::App<tauri::Wry>) -> Result<(), Box<dyn std::error::Error>> {
     println!("Dictara v{}", env!("CARGO_PKG_VERSION"));
+
+    // Clean up old recordings from previous sessions
+    cleanup_old_recordings(app.app_handle());
 
     // Check accessibility permission on macOS
     #[cfg(target_os = "macos")]
