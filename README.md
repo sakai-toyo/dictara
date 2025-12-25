@@ -2,6 +2,10 @@
 
 A cross-platform desktop application built with Tauri + React + TypeScript.
 
+## Download
+
+[**Download the Latest Release**](https://github.com/vitalii-zinchenko/dictara/releases/latest)
+
 ## Prerequisites
 
 - [Rust](https://www.rust-lang.org/learn/get-started#installing-rust)
