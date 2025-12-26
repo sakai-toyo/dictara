@@ -1,44 +1,51 @@
-import { Zap, Globe, Shield, Cpu, Keyboard, Copy } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  IconLightning,
+  IconLanguages,
+  IconPrivacy,
+  IconWhisper,
+  IconWorkflow,
+  IconAutoPaste,
+} from "@/components/icons/FeatureIcons";
 
 const features = [
   {
-    icon: Zap,
+    icon: IconLightning,
     title: "Lightning Fast",
     description:
       "Get your transcriptions in seconds. No waiting, no loading screens—just instant results.",
     gradient: "from-warm-golden to-warm-orange",
   },
   {
-    icon: Globe,
+    icon: IconLanguages,
     title: "90+ Languages",
     description:
       "Speak in your native language. Whisper understands and transcribes over 90 languages accurately.",
     gradient: "from-cool-cyan to-cool-blue",
   },
   {
-    icon: Shield,
+    icon: IconPrivacy,
     title: "Privacy First",
     description:
       "Your audio is recorded locally first. API keys stored securely in your system keychain.",
     gradient: "from-cool-purple to-cool-blue",
   },
   {
-    icon: Cpu,
+    icon: IconWhisper,
     title: "Powered by Whisper",
     description:
       "Leveraging OpenAI's state-of-the-art Whisper model for industry-leading accuracy.",
     gradient: "from-warm-coral to-warm-orange",
   },
   {
-    icon: Keyboard,
+    icon: IconWorkflow,
     title: "Simple Workflow",
     description:
       "Hold FN to record, release to transcribe. Or press FN+Space for hands-free dictation.",
     gradient: "from-cool-blue to-cool-cyan",
   },
   {
-    icon: Copy,
+    icon: IconAutoPaste,
     title: "Auto Paste",
     description:
       "Transcribed text is automatically pasted wherever your cursor is. No extra steps needed.",
