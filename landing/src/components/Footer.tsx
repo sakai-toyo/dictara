@@ -1,4 +1,5 @@
 import { Github } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -18,7 +19,7 @@ export function Footer() {
           </div>
 
           {/* Links */}
-          <div className="flex items-center gap-6">
+          <div className="flex flex-wrap items-center justify-center gap-6">
             <a
               href="https://github.com/vitalii-zinchenko/dictara"
               target="_blank"
@@ -36,9 +37,20 @@ export function Footer() {
             >
               Releases
             </a>
+            <Link
+              to="/privacy"
+              className="text-sm text-white/60 hover:text-white transition-colors"
+            >
+              Privacy
+            </Link>
+            <Link
+              to="/terms"
+              className="text-sm text-white/60 hover:text-white transition-colors"
+            >
+              Terms
+            </Link>
           </div>
         </div>
-
       </div>
     </footer>
   );
