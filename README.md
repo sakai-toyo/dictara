@@ -1,26 +1,36 @@
+<div align="center">
+
+<img src="src-tauri/icons/Square310x310Logo.png" alt="Dictara" width="128" height="128">
+
 # Dictara
 
-A cross-platform desktop application built with Tauri + React + TypeScript.
+**Typing is slow. Speaking isn't.**
 
-## Download
+Free · Bring Your Own Key · Speech-to-Text
 
-[**Download the Latest Release**](https://github.com/vitalii-zinchenko/dictara/releases/latest)
+Turn your spoken words into text — in any app, any language.
 
-## Prerequisites
+[![Download](https://img.shields.io/badge/Download-Dictara-blue?style=for-the-badge)](https://dictara.app/)
 
-- [Rust](https://www.rust-lang.org/learn/get-started#installing-rust)
-- [Node.js & npm](https://nodejs.org/)
-- [Tauri prerequisites](https://tauri.app/start/prerequisites/) for your OS
+[**Get Dictara**](https://dictara.app/)
 
-## Getting Started
+</div>
 
-```bash
-npm install
-npm run tauri dev
-```
+---
 
-## Recommended IDE
+## How It Works
 
-[VS Code](https://code.visualstudio.com/) with:
-- [Tauri extension](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode)
-- [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+1. **Install** — Download and install Dictara
+2. **Configure** — Add your OpenAI or Azure OpenAI API key
+3. **Dictate** — Hold `FN` to record, release to transcribe. Or press `FN+Space` for hands-free mode
+4. **Done** — Text is automatically pasted wherever your cursor is — in any app
+
+---
+
+## Contributing
+
+We welcome contributions! Please see our [Contributing Guide](.github/CONTRIBUTING.md) to get started.
+
+## License
+
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
