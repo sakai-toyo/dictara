@@ -37,7 +37,7 @@ reqwest = { version = "0.12", features = ["blocking", "multipart"] }
 dotenvy = "0.15"
 arboard = "3.3"
 image = "0.25.9"
-derive_more = { version = "2.1.0", features = ["from", "display"] }
+derive_more = { version = "2.1.1", features = ["from", "display"] }
 keyring = { version = "3", features = ["apple-native"] }
 specta = { version = "=2.0.0-rc.22", features = ["derive"] }
 tauri-specta = { version = "=2.0.0-rc.21", features = ["derive", "typescript"] }
