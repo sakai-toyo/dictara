@@ -38,6 +38,7 @@ tokio = { version = "1", features = ["full"] }
 reqwest = { version = "0.12", features = ["blocking", "multipart"] }
 dotenvy = "0.15"
 arboard = "3.3"
+enigo = "0.6"
 image = "0.25.9"
 derive_more = { version = "2.1.1", features = ["from", "display"] }
 keyring = { version = "3", features = ["apple-native"] }

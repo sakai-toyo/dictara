@@ -1,25 +1,18 @@
 use arboard::Clipboard;
+use enigo::{Direction, Enigo, Key, Keyboard, Settings};
 use log::warn;
 use std::{thread, time::Duration};
 
-#[cfg(target_os = "macos")]
-use objc2_core_graphics::{
-    CGEvent, CGEventFlags, CGEventSource, CGEventSourceStateID, CGEventTapLocation, CGKeyCode,
-};
-
 #[derive(Debug, thiserror::Error)]
 pub enum ClipboardPasteError {
-    #[error("Faield to create event source")]
-    EventSourceCreationFailed,
-    #[error("Faield to create key event")]
-    KeyEventCreationFailed,
+    #[error("Failed to initialize enigo: {0}")]
+    EnigoInitFailed(String),
+    #[error("Failed to simulate key event: {0}")]
+    KeyEventFailed(String),
     #[error("Empty text")]
     EmptyText,
     #[error("Clipboard error: {0}")]
     ClipboardError(#[from] arboard::Error),
-    #[error("Unsupported platform")]
-    #[cfg(not(target_os = "macos"))]
-    UnsupportedPlatform,
 }
 
 /// Auto-paste text
@@ -27,11 +20,10 @@ pub enum ClipboardPasteError {
 /// This function:
 /// 1. Saves the current clipboard content
 /// 2. Sets the transcribed text to clipboard
-/// 3. Simulates Cmd+V using Core Graphics events directly
+/// 3. Simulates Cmd+V (macOS) or Ctrl+V (Windows/Linux) using enigo
 /// 4. Restores the original clipboard after a delay
 ///
 /// Returns Ok(()) on success, Err on clipboard or keyboard simulation failure
-#[cfg(target_os = "macos")]
 pub fn paste_text(text: &str) -> Result<(), ClipboardPasteError> {
     // Guard: Don't paste empty text
     if text.is_empty() {
@@ -77,52 +69,38 @@ fn set_current_clipboard(text: &str) -> Result<(), arboard::Error> {
     clipboard.set_text(text.to_string())
 }
 
-/// Returns Ok(()) on success, Err on event creation/posting failure
-#[cfg(target_os = "macos")]
+/// Simulate Cmd+V (macOS) or Ctrl+V (Windows/Linux) using enigo
+/// Uses virtual key codes to work regardless of keyboard layout
 pub fn simulate_paste() -> Result<(), ClipboardPasteError> {
-    // Key code for 'V' key on macOS keyboard
-    const V_KEYCODE: CGKeyCode = 9;
+    let mut enigo = Enigo::new(&Settings::default())
+        .map_err(|e| ClipboardPasteError::EnigoInitFailed(e.to_string()))?;
 
-    // Create event source for HID system state
-    let event_source = CGEventSource::new(CGEventSourceStateID::HIDSystemState)
-        .ok_or(ClipboardPasteError::EventSourceCreationFailed)?;
+    // Platform-specific key definitions
+    // Use Key::Other with virtual key codes for layout-independent V key
+    #[cfg(target_os = "macos")]
+    let (modifier_key, v_key) = (Key::Meta, Key::Other(9)); // Cmd + V (keycode 9)
+    #[cfg(target_os = "windows")]
+    let (modifier_key, v_key) = (Key::Control, Key::Other(0x56)); // Ctrl + V (VK_V)
+    #[cfg(target_os = "linux")]
+    let (modifier_key, v_key) = (Key::Control, Key::Unicode('v')); // Ctrl + v
 
-    // Step 1: Create V key press event with Command modifier
-    let key_down_event = CGEvent::new_keyboard_event(
-        Some(&event_source),
-        V_KEYCODE,
-        true, // key down
-    )
-    .ok_or(ClipboardPasteError::KeyEventCreationFailed)?;
+    // Press modifier
+    enigo
+        .key(modifier_key, Direction::Press)
+        .map_err(|e| ClipboardPasteError::KeyEventFailed(format!("modifier press: {}", e)))?;
 
-    // Set Command modifier flag (equivalent to Cmd key being held)
-    CGEvent::set_flags(Some(&key_down_event), CGEventFlags::MaskCommand);
+    // Click V key
+    enigo
+        .key(v_key, Direction::Click)
+        .map_err(|e| ClipboardPasteError::KeyEventFailed(format!("V click: {}", e)))?;
 
-    // Post the key down event to HID event tap (system-level)
-    CGEvent::post(CGEventTapLocation::HIDEventTap, Some(&key_down_event));
+    // Small delay for reliability
+    thread::sleep(Duration::from_millis(50));
 
-    // Small delay to ensure key down is processed before key up
-    // thread::sleep(Duration::from_millis(10));
-
-    // Step 2: Create V key release event
-    let key_up_event = CGEvent::new_keyboard_event(
-        Some(&event_source),
-        V_KEYCODE,
-        false, // key up
-    )
-    .ok_or(ClipboardPasteError::KeyEventCreationFailed)?;
-
-    // Keep Command modifier during key up (some apps need this consistency)
-    CGEvent::set_flags(Some(&key_up_event), CGEventFlags::MaskCommand);
-
-    // Post the key up event
-    CGEvent::post(CGEventTapLocation::HIDEventTap, Some(&key_up_event));
+    // Release modifier
+    enigo
+        .key(modifier_key, Direction::Release)
+        .map_err(|e| ClipboardPasteError::KeyEventFailed(format!("modifier release: {}", e)))?;
 
     Ok(())
-}
-
-#[cfg(not(target_os = "macos"))]
-pub fn simulate_paste() -> Result<(), ClipboardPasteError> {
-    warn!("Auto-paste not yet implemented for this platform");
-    Err(ClipboardPasteError::UnsupportedPlatform)
 }
