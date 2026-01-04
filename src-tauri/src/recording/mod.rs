@@ -9,7 +9,7 @@ use std::time::SystemTime;
 
 // Re-export state manager types
 pub use state_manager::{
-    RecordingAction, RecordingEvent, RecordingState, RecordingStateManager, TransitionResult,
+    RecordingAction, RecordingEvent, RecordingStateManager, TransitionResult,
 };
 
 // Public exports

@@ -1,11 +1,15 @@
-use crate::recording::{RecordingCommand, RecordingState, RecordingStateManager};
+use crate::recording::{RecordingCommand, RecordingStateManager};
 use dictara_keyboard::{grab, EventType, Key};
 use log::error;
 use std::sync::Arc;
 use std::thread::{self, JoinHandle};
 use tokio::sync::mpsc;
 
-/// Stateful FN key listener
+/// Configurable trigger keys for recording actions
+const RECORDING_TRIGGER: Key = Key::Function;
+const LOCK_MODIFIER: Key = Key::Space;
+
+/// Keyboard listener that detects key events and emits recording commands
 pub struct KeyListener {
     _thread_handle: Option<JoinHandle<()>>,
 }
@@ -18,17 +22,17 @@ impl KeyListener {
         let thread_handle = thread::spawn(move || {
             if let Err(err) = grab(move |event| {
                 match event.event_type {
-                    EventType::KeyPress(Key::Function) => {
-                        let _ = command_tx.blocking_send(RecordingCommand::FnDown);
+                    EventType::KeyPress(key) if key == RECORDING_TRIGGER => {
+                        let _ = command_tx.blocking_send(RecordingCommand::StartRecording);
                         None // Swallow to block emoji picker
                     }
-                    EventType::KeyRelease(Key::Function) => {
-                        let _ = command_tx.blocking_send(RecordingCommand::FnUp);
+                    EventType::KeyRelease(key) if key == RECORDING_TRIGGER => {
+                        let _ = command_tx.blocking_send(RecordingCommand::StopRecording);
                         None // Swallow to block emoji picker
                     }
-                    EventType::KeyPress(Key::Space) => {
-                        if state_manager.current() == RecordingState::Recording {
-                            let _ = command_tx.blocking_send(RecordingCommand::Lock);
+                    EventType::KeyPress(key) if key == LOCK_MODIFIER => {
+                        if state_manager.is_busy() {
+                            let _ = command_tx.blocking_send(RecordingCommand::LockRecording);
                             None // Avoid inserting a space while recording
                         } else {
                             Some(event) // Pass through

@@ -4,12 +4,12 @@ use super::RecordingEvent;
 /// These are sent through channels (NOT Tauri events) for zero-overhead internal communication
 #[derive(Debug, Clone)]
 pub enum RecordingCommand {
-    /// Fn key pressed
-    FnDown,
-    /// Fn key released
-    FnUp,
-    /// Space key pressed - lock the recording
-    Lock,
+    /// Start a new recording session
+    StartRecording,
+    /// Stop the current recording and begin transcription
+    StopRecording,
+    /// Lock the recording (Fn release will be ignored, press Fn again to stop)
+    LockRecording,
     /// Cancel the current recording without transcribing
     Cancel,
     /// Retry transcription of the last failed recording
@@ -19,9 +19,9 @@ pub enum RecordingCommand {
 impl From<RecordingCommand> for RecordingEvent {
     fn from(command: RecordingCommand) -> Self {
         match command {
-            RecordingCommand::FnDown => RecordingEvent::FnDown,
-            RecordingCommand::FnUp => RecordingEvent::FnUp,
-            RecordingCommand::Lock => RecordingEvent::Lock,
+            RecordingCommand::StartRecording => RecordingEvent::Start,
+            RecordingCommand::StopRecording => RecordingEvent::Stop,
+            RecordingCommand::LockRecording => RecordingEvent::Lock,
             RecordingCommand::Cancel => RecordingEvent::Cancel,
             RecordingCommand::RetryTranscription => RecordingEvent::Retry,
         }

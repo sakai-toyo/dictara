@@ -2,13 +2,13 @@
 //!
 //! State diagram:
 //! ```text
-//! Ready ──FnDown──> Recording ──FnUp──> Transcribing ──reset()──> Ready
+//! Ready ──Start──> Recording ──Stop──> Transcribing ──reset()──> Ready
 //!   │                   │
 //! [Retry]            [Lock]
 //!   │                   ↓
 //!   │          RecordingLocked
 //!   │                   │
-//!   │               [FnDown]──> Transcribing
+//!   │               [Start]──> Transcribing (Fn pressed again to stop)
 //!   │               [Cancel]──> Ready
 //!   └──────────────────────────> Transcribing
 //! ```
@@ -21,11 +21,11 @@ use std::sync::Mutex;
 /// Events that can trigger state transitions
 #[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display)]
 pub enum RecordingEvent {
-    /// Fn key pressed
-    FnDown,
-    /// Fn key released
-    FnUp,
-    /// Space key pressed (lock recording)
+    /// Start recording
+    Start,
+    /// Stop recording and transcribe
+    Stop,
+    /// Lock recording (Fn release will be ignored)
     Lock,
     /// Escape or cancel action
     Cancel,
@@ -149,7 +149,7 @@ impl RecordingStateManager {
     ) -> Option<(RecordingState, Option<RecordingAction>)> {
         match current {
             RecordingState::Ready => match event {
-                RecordingEvent::FnDown => Some((
+                RecordingEvent::Start => Some((
                     RecordingState::Recording,
                     Some(RecordingAction::StartRecording),
                 )),
@@ -161,7 +161,7 @@ impl RecordingStateManager {
             },
 
             RecordingState::Recording => match event {
-                RecordingEvent::FnUp => Some((
+                RecordingEvent::Stop => Some((
                     RecordingState::Transcribing,
                     Some(RecordingAction::StopAndTranscribe),
                 )),
@@ -174,7 +174,8 @@ impl RecordingStateManager {
             },
 
             RecordingState::RecordingLocked => match event {
-                RecordingEvent::FnDown => Some((
+                // Fn pressed again while locked = stop recording
+                RecordingEvent::Start => Some((
                     RecordingState::Transcribing,
                     Some(RecordingAction::StopAndTranscribe),
                 )),
