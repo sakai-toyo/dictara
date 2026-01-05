@@ -156,12 +156,12 @@ pub fn setup_app(app: &mut tauri::App<tauri::Wry>) -> Result<(), Box<dyn std::er
     app.manage(updater.clone());
     updater::start_periodic_update_check(app.app_handle().clone(), updater);
 
+    // Always fix the Globe key setting on app startup to prevent emoji picker from appearing
+    // when using Fn for recording (user may have changed settings or reinstalled macOS)
+    globe_key::fix_globe_key_if_needed();
+
     // Decide which window to open
     if show_onboarding {
-        // During onboarding, silently fix the Globe key setting if it's set to "Show Emoji"
-        // This prevents the emoji picker from appearing when using Fn for recording
-        globe_key::fix_globe_key_if_needed();
-
         if let Err(e) = window::open_onboarding_window(app.app_handle()) {
             error!("Failed to open onboarding window: {}", e);
         }
