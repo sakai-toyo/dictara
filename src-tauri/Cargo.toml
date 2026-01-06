@@ -1,6 +1,6 @@
 [package]
 name = "dictara"
-version = "0.1.19"
+version = "0.1.19-rc.1"
 description = "Dictara - Speach to text app"
 authors = ["Dictara Contributors"]
 license = "MIT"
