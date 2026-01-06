@@ -1,8 +1,10 @@
 import { Github } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { useDownload } from "@/hooks/useDownload";
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
+  const { version } = useDownload();
 
   return (
     <footer className="relative py-12 border-t border-white/5">
@@ -14,7 +16,8 @@ export function Footer() {
               Dictara
             </span>
             <p className="text-sm text-white/40">
-              &copy; {currentYear} Dictara. Open source under MIT.
+              &copy; {currentYear} Dictara{version ? ` ${version}` : ""}. Open
+              source under MIT.
             </p>
           </div>
 

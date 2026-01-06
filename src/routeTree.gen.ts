@@ -16,9 +16,11 @@ import { Route as RecordingPopupIndexRouteImport } from './routes/recording-popu
 import { Route as PreferencesIndexRouteImport } from './routes/preferences/index'
 import { Route as OnboardingIndexRouteImport } from './routes/onboarding/index'
 import { Route as PreferencesUpdatesRouteImport } from './routes/preferences/updates'
+import { Route as PreferencesHotkeysRouteImport } from './routes/preferences/hotkeys'
 import { Route as PreferencesApiKeysRouteImport } from './routes/preferences/api-keys'
 import { Route as PreferencesAboutRouteImport } from './routes/preferences/about'
 import { Route as OnboardingWelcomeRouteImport } from './routes/onboarding/welcome'
+import { Route as OnboardingTriggerKeyRouteImport } from './routes/onboarding/trigger-key'
 import { Route as OnboardingFnSpaceRouteImport } from './routes/onboarding/fn-space'
 import { Route as OnboardingFnHoldRouteImport } from './routes/onboarding/fn-hold'
 import { Route as OnboardingCompleteRouteImport } from './routes/onboarding/complete'
@@ -60,6 +62,11 @@ const PreferencesUpdatesRoute = PreferencesUpdatesRouteImport.update({
   path: '/updates',
   getParentRoute: () => PreferencesRouteRoute,
 } as any)
+const PreferencesHotkeysRoute = PreferencesHotkeysRouteImport.update({
+  id: '/hotkeys',
+  path: '/hotkeys',
+  getParentRoute: () => PreferencesRouteRoute,
+} as any)
 const PreferencesApiKeysRoute = PreferencesApiKeysRouteImport.update({
   id: '/api-keys',
   path: '/api-keys',
@@ -73,6 +80,11 @@ const PreferencesAboutRoute = PreferencesAboutRouteImport.update({
 const OnboardingWelcomeRoute = OnboardingWelcomeRouteImport.update({
   id: '/welcome',
   path: '/welcome',
+  getParentRoute: () => OnboardingRouteRoute,
+} as any)
+const OnboardingTriggerKeyRoute = OnboardingTriggerKeyRouteImport.update({
+  id: '/trigger-key',
+  path: '/trigger-key',
   getParentRoute: () => OnboardingRouteRoute,
 } as any)
 const OnboardingFnSpaceRoute = OnboardingFnSpaceRouteImport.update({
@@ -110,9 +122,11 @@ export interface FileRoutesByFullPath {
   '/onboarding/complete': typeof OnboardingCompleteRoute
   '/onboarding/fn-hold': typeof OnboardingFnHoldRoute
   '/onboarding/fn-space': typeof OnboardingFnSpaceRoute
+  '/onboarding/trigger-key': typeof OnboardingTriggerKeyRoute
   '/onboarding/welcome': typeof OnboardingWelcomeRoute
   '/preferences/about': typeof PreferencesAboutRoute
   '/preferences/api-keys': typeof PreferencesApiKeysRoute
+  '/preferences/hotkeys': typeof PreferencesHotkeysRoute
   '/preferences/updates': typeof PreferencesUpdatesRoute
   '/onboarding/': typeof OnboardingIndexRoute
   '/preferences/': typeof PreferencesIndexRoute
@@ -124,9 +138,11 @@ export interface FileRoutesByTo {
   '/onboarding/complete': typeof OnboardingCompleteRoute
   '/onboarding/fn-hold': typeof OnboardingFnHoldRoute
   '/onboarding/fn-space': typeof OnboardingFnSpaceRoute
+  '/onboarding/trigger-key': typeof OnboardingTriggerKeyRoute
   '/onboarding/welcome': typeof OnboardingWelcomeRoute
   '/preferences/about': typeof PreferencesAboutRoute
   '/preferences/api-keys': typeof PreferencesApiKeysRoute
+  '/preferences/hotkeys': typeof PreferencesHotkeysRoute
   '/preferences/updates': typeof PreferencesUpdatesRoute
   '/onboarding': typeof OnboardingIndexRoute
   '/preferences': typeof PreferencesIndexRoute
@@ -142,9 +158,11 @@ export interface FileRoutesById {
   '/onboarding/complete': typeof OnboardingCompleteRoute
   '/onboarding/fn-hold': typeof OnboardingFnHoldRoute
   '/onboarding/fn-space': typeof OnboardingFnSpaceRoute
+  '/onboarding/trigger-key': typeof OnboardingTriggerKeyRoute
   '/onboarding/welcome': typeof OnboardingWelcomeRoute
   '/preferences/about': typeof PreferencesAboutRoute
   '/preferences/api-keys': typeof PreferencesApiKeysRoute
+  '/preferences/hotkeys': typeof PreferencesHotkeysRoute
   '/preferences/updates': typeof PreferencesUpdatesRoute
   '/onboarding/': typeof OnboardingIndexRoute
   '/preferences/': typeof PreferencesIndexRoute
@@ -161,9 +179,11 @@ export interface FileRouteTypes {
     | '/onboarding/complete'
     | '/onboarding/fn-hold'
     | '/onboarding/fn-space'
+    | '/onboarding/trigger-key'
     | '/onboarding/welcome'
     | '/preferences/about'
     | '/preferences/api-keys'
+    | '/preferences/hotkeys'
     | '/preferences/updates'
     | '/onboarding/'
     | '/preferences/'
@@ -175,9 +195,11 @@ export interface FileRouteTypes {
     | '/onboarding/complete'
     | '/onboarding/fn-hold'
     | '/onboarding/fn-space'
+    | '/onboarding/trigger-key'
     | '/onboarding/welcome'
     | '/preferences/about'
     | '/preferences/api-keys'
+    | '/preferences/hotkeys'
     | '/preferences/updates'
     | '/onboarding'
     | '/preferences'
@@ -192,9 +214,11 @@ export interface FileRouteTypes {
     | '/onboarding/complete'
     | '/onboarding/fn-hold'
     | '/onboarding/fn-space'
+    | '/onboarding/trigger-key'
     | '/onboarding/welcome'
     | '/preferences/about'
     | '/preferences/api-keys'
+    | '/preferences/hotkeys'
     | '/preferences/updates'
     | '/onboarding/'
     | '/preferences/'
@@ -258,6 +282,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreferencesUpdatesRouteImport
       parentRoute: typeof PreferencesRouteRoute
     }
+    '/preferences/hotkeys': {
+      id: '/preferences/hotkeys'
+      path: '/hotkeys'
+      fullPath: '/preferences/hotkeys'
+      preLoaderRoute: typeof PreferencesHotkeysRouteImport
+      parentRoute: typeof PreferencesRouteRoute
+    }
     '/preferences/api-keys': {
       id: '/preferences/api-keys'
       path: '/api-keys'
@@ -277,6 +308,13 @@ declare module '@tanstack/react-router' {
       path: '/welcome'
       fullPath: '/onboarding/welcome'
       preLoaderRoute: typeof OnboardingWelcomeRouteImport
+      parentRoute: typeof OnboardingRouteRoute
+    }
+    '/onboarding/trigger-key': {
+      id: '/onboarding/trigger-key'
+      path: '/trigger-key'
+      fullPath: '/onboarding/trigger-key'
+      preLoaderRoute: typeof OnboardingTriggerKeyRouteImport
       parentRoute: typeof OnboardingRouteRoute
     }
     '/onboarding/fn-space': {
@@ -323,6 +361,7 @@ interface OnboardingRouteRouteChildren {
   OnboardingCompleteRoute: typeof OnboardingCompleteRoute
   OnboardingFnHoldRoute: typeof OnboardingFnHoldRoute
   OnboardingFnSpaceRoute: typeof OnboardingFnSpaceRoute
+  OnboardingTriggerKeyRoute: typeof OnboardingTriggerKeyRoute
   OnboardingWelcomeRoute: typeof OnboardingWelcomeRoute
   OnboardingIndexRoute: typeof OnboardingIndexRoute
 }
@@ -333,6 +372,7 @@ const OnboardingRouteRouteChildren: OnboardingRouteRouteChildren = {
   OnboardingCompleteRoute: OnboardingCompleteRoute,
   OnboardingFnHoldRoute: OnboardingFnHoldRoute,
   OnboardingFnSpaceRoute: OnboardingFnSpaceRoute,
+  OnboardingTriggerKeyRoute: OnboardingTriggerKeyRoute,
   OnboardingWelcomeRoute: OnboardingWelcomeRoute,
   OnboardingIndexRoute: OnboardingIndexRoute,
 }
@@ -344,6 +384,7 @@ const OnboardingRouteRouteWithChildren = OnboardingRouteRoute._addFileChildren(
 interface PreferencesRouteRouteChildren {
   PreferencesAboutRoute: typeof PreferencesAboutRoute
   PreferencesApiKeysRoute: typeof PreferencesApiKeysRoute
+  PreferencesHotkeysRoute: typeof PreferencesHotkeysRoute
   PreferencesUpdatesRoute: typeof PreferencesUpdatesRoute
   PreferencesIndexRoute: typeof PreferencesIndexRoute
 }
@@ -351,6 +392,7 @@ interface PreferencesRouteRouteChildren {
 const PreferencesRouteRouteChildren: PreferencesRouteRouteChildren = {
   PreferencesAboutRoute: PreferencesAboutRoute,
   PreferencesApiKeysRoute: PreferencesApiKeysRoute,
+  PreferencesHotkeysRoute: PreferencesHotkeysRoute,
   PreferencesUpdatesRoute: PreferencesUpdatesRoute,
   PreferencesIndexRoute: PreferencesIndexRoute,
 }

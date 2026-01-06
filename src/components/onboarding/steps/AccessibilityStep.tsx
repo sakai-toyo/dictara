@@ -11,11 +11,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { CheckCircle2, AlertCircle, Settings } from 'lucide-react'
 
 export function AccessibilityStep() {
-  const {
-    data: hasPermission,
-    isLoading: isChecking,
-    refetch: checkPermission,
-  } = useAccessibilityPermission()
+  const { data: hasPermission, isLoading: isChecking } = useAccessibilityPermission()
   const requestPermission = useRequestAccessibilityPermission()
   const { goNext, goBack, skipOnboarding, setPendingRestart, isNavigating } =
     useOnboardingNavigation()
@@ -82,7 +78,7 @@ export function AccessibilityStep() {
       title="Accessibility Permission"
       description="Dictara needs accessibility access to detect keyboard shortcuts."
       onNext={handleRestart}
-      nextLabel="Restart App"
+      nextLabel="Restart App & Next"
       onBack={() => goBack('accessibility')}
       onSkip={() => skipOnboarding.mutate()}
       isLoading={isNavigating || skipOnboarding.isPending || setPendingRestart.isPending}
@@ -102,7 +98,7 @@ export function AccessibilityStep() {
                 Click the button below to open the Accessibility settings. Then find "Dictara" in
                 the list and toggle it ON.
               </p>
-              <Button variant="secondary" onClick={() => requestPermission.mutate()}>
+              <Button variant="default" onClick={() => requestPermission.mutate()}>
                 Open Accessibility Settings
               </Button>
             </div>
@@ -111,15 +107,11 @@ export function AccessibilityStep() {
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              After enabling the permission in System Settings, click "Restart App" to continue
-              setup. The app needs to restart for the permission to take effect.
+              After enabling the permission in System Settings, click "Restart App & Next" to
+              continue setup. The app needs to restart for the permission to take effect.
             </AlertDescription>
           </Alert>
         </div>
-
-        <Button variant="outline" size="sm" onClick={() => checkPermission()}>
-          Check Again
-        </Button>
       </div>
     </StepContainer>
   )
