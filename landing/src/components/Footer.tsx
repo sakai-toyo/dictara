@@ -52,6 +52,12 @@ export function Footer() {
             >
               Terms
             </Link>
+            <Link
+              to="/stats"
+              className="text-sm text-white/60 hover:text-white transition-colors"
+            >
+              Stats
+            </Link>
           </div>
         </div>
       </div>
