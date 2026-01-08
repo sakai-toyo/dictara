@@ -30,7 +30,7 @@ Commit and push changes using `/git commit` with message: `chore: bump version t
 
 # Step 4: Trigger release (conditional)
 
-If `should-release` is "yes" (or similar affirmative value), trigger release pipeline:
+If `should-release` is "yes" (or similar affirmative value), trigger release pipeline and give the user a link to the pipeline:
 `gh workflow run release.yml --ref main`
 
 If `should-release` is "no" (or similar negative value), skip this step and inform user that version was bumped but release was not triggered.
