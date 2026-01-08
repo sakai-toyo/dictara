@@ -47,11 +47,11 @@ pub fn paste_text(text: &str) -> Result<(), ClipboardPasteError> {
 
     // Give the target application time to process the paste event
     // before restoring the original clipboard content.
-    // 500ms is chosen because:
+    // 250ms is chosen because:
     // - Some apps read clipboard asynchronously on dispatch queues
     // - Clipboard managers like Maccy poll every 500ms by default
     // - Too short a delay can cause race conditions (e.g., app crashes)
-    thread::sleep(Duration::from_millis(500));
+    thread::sleep(Duration::from_millis(250));
 
     // Restore previous clipboard content
     if let Some(previous_text) = previous_clipboard {
