@@ -38,6 +38,8 @@ The commit message should follow the "Conventional Commits" format.
 Also, the commit message should contain the details of the changes made.
 The commit body should contain the details of why that change was made and what was the impact of the change. It should be concise and easy to understand as the human will read it.
 
+Show user commit message and ask user if 
+
 Format:
 
 ```

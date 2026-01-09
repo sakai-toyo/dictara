@@ -1,5 +1,5 @@
-import { X } from 'lucide-react'
 import type { RecordingStateChanged } from '@/bindings'
+import { X } from 'lucide-react'
 
 // Extract the error variant from the discriminated union
 type RecordingError = Extract<RecordingStateChanged, { state: 'error' }>
@@ -23,10 +23,16 @@ export function ErrorState({
     <div className="flex items-center justify-between w-full h-full px-3 py-2 gap-2">
       {/* Error Message */}
       <div className="flex-1 min-w-0 overflow-hidden">
-        <div className="text-red-400 text-xs font-semibold">
-          {error.errorType === 'recording' ? 'Recording Failed' : 'Transcription Failed'}
-        </div>
-        <div className="text-gray-300 text-[10px] leading-tight line-clamp-2">
+        {error.errorType !== 'no_speech' && (
+          <div className="text-red-400 text-xs font-semibold">
+            {error.errorType === 'recording' ? 'Recording Failed' : 'Transcription Failed'}
+          </div>
+        )}
+        <div
+          className={`text-gray-300 leading-tight line-clamp-2 ${
+            error.errorType === 'no_speech' ? 'text-sm' : 'text-[10px]'
+          }`}
+        >
           {error.userMessage}
         </div>
       </div>

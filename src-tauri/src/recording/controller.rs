@@ -90,7 +90,7 @@ impl ActionError {
         Self {
             error_type: "no_speech".to_string(),
             error_message: "No speech detected".to_string(),
-            user_message: "No speech detected. Please try again and speak clearly.".to_string(),
+            user_message: "No speech detected.".to_string(),
             audio_file_path: None, // Don't keep silent audio for retry
         }
     }
@@ -290,11 +290,8 @@ impl Controller {
                 cleanup_recording_file(&recording_result.file_path);
             }
 
-            // Hide recording popup
-            if let Err(e) = close_recording_popup(&self.app_handle) {
-                log::error!("Failed to close recording popup: {}", e);
-            }
-
+            // Don't close popup - let the error be displayed
+            // User will dismiss it manually (no retry since audio was deleted)
             return Err(ActionError::no_speech());
         }
 
