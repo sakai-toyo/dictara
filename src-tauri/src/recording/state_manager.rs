@@ -110,6 +110,12 @@ impl RecordingStateManager {
         self.current().is_busy()
     }
 
+    /// Check if currently in Recording state (not locked)
+    /// Used to determine when to swallow the Space key for lock transition
+    pub fn is_recording(&self) -> bool {
+        self.current() == RecordingState::Recording
+    }
+
     /// Attempt a state transition based on an event
     ///
     /// This is the ONLY way to change state - ensures all transitions are valid.

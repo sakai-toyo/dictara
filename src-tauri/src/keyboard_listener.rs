@@ -43,11 +43,13 @@ impl KeyListener {
                         Some(event)
                     }
                     EventType::KeyPress(key) if key == LOCK_MODIFIER => {
-                        if state_manager.is_busy() {
+                        // Only swallow Space when transitioning from Recording → RecordingLocked
+                        // Once locked, let Space through for normal typing
+                        if state_manager.is_recording() {
                             let _ = command_tx.blocking_send(RecordingCommand::LockRecording);
-                            None // Avoid inserting a space while recording
+                            None // Swallow this one Space that triggered the lock
                         } else {
-                            Some(event) // Pass through
+                            Some(event) // Pass through (Ready, RecordingLocked, Transcribing)
                         }
                     }
                     _ => Some(event), // Pass through all other events
