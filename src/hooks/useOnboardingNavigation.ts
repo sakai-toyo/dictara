@@ -5,6 +5,7 @@ import { commands, type OnboardingStep } from '@/bindings'
 const STEP_ORDER: OnboardingStep[] = [
   'welcome',
   'accessibility',
+  'microphone',
   'api_keys',
   'trigger_key',
   'fn_hold',
@@ -15,6 +16,7 @@ const STEP_ORDER: OnboardingStep[] = [
 const STEP_ROUTES: Record<OnboardingStep, string> = {
   welcome: '/onboarding/welcome',
   accessibility: '/onboarding/accessibility',
+  microphone: '/onboarding/microphone',
   api_keys: '/onboarding/api-keys',
   trigger_key: '/onboarding/trigger-key',
   fn_hold: '/onboarding/fn-hold',

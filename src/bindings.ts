@@ -13,6 +13,19 @@ async checkAccessibilityPermission() : Promise<boolean> {
 async requestAccessibilityPermission() : Promise<void> {
     await TAURI_INVOKE("request_accessibility_permission");
 },
+/**
+ * Check microphone permission status
+ * Returns: "authorized", "denied", "restricted", or "not_determined"
+ */
+async checkMicrophonePermission() : Promise<string> {
+    return await TAURI_INVOKE("check_microphone_permission");
+},
+/**
+ * Open System Settings to the Microphone privacy pane
+ */
+async openMicrophoneSettings() : Promise<void> {
+    await TAURI_INVOKE("open_microphone_settings");
+},
 async loadAppConfig() : Promise<Result<AppConfig, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("load_app_config") };
@@ -400,7 +413,7 @@ pendingRestart: boolean }
 /**
  * Onboarding step enum - tracks current position in the wizard
  */
-export type OnboardingStep = "welcome" | "accessibility" | "api_keys" | "trigger_key" | "fn_hold" | "fn_space" | "complete"
+export type OnboardingStep = "welcome" | "accessibility" | "microphone" | "api_keys" | "trigger_key" | "fn_hold" | "fn_space" | "complete"
 /**
  * OpenAI provider configuration (stored in keychain)
  */

@@ -21,6 +21,7 @@ import { Route as PreferencesApiKeysRouteImport } from './routes/preferences/api
 import { Route as PreferencesAboutRouteImport } from './routes/preferences/about'
 import { Route as OnboardingWelcomeRouteImport } from './routes/onboarding/welcome'
 import { Route as OnboardingTriggerKeyRouteImport } from './routes/onboarding/trigger-key'
+import { Route as OnboardingMicrophoneRouteImport } from './routes/onboarding/microphone'
 import { Route as OnboardingFnSpaceRouteImport } from './routes/onboarding/fn-space'
 import { Route as OnboardingFnHoldRouteImport } from './routes/onboarding/fn-hold'
 import { Route as OnboardingCompleteRouteImport } from './routes/onboarding/complete'
@@ -87,6 +88,11 @@ const OnboardingTriggerKeyRoute = OnboardingTriggerKeyRouteImport.update({
   path: '/trigger-key',
   getParentRoute: () => OnboardingRouteRoute,
 } as any)
+const OnboardingMicrophoneRoute = OnboardingMicrophoneRouteImport.update({
+  id: '/microphone',
+  path: '/microphone',
+  getParentRoute: () => OnboardingRouteRoute,
+} as any)
 const OnboardingFnSpaceRoute = OnboardingFnSpaceRouteImport.update({
   id: '/fn-space',
   path: '/fn-space',
@@ -122,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/onboarding/complete': typeof OnboardingCompleteRoute
   '/onboarding/fn-hold': typeof OnboardingFnHoldRoute
   '/onboarding/fn-space': typeof OnboardingFnSpaceRoute
+  '/onboarding/microphone': typeof OnboardingMicrophoneRoute
   '/onboarding/trigger-key': typeof OnboardingTriggerKeyRoute
   '/onboarding/welcome': typeof OnboardingWelcomeRoute
   '/preferences/about': typeof PreferencesAboutRoute
@@ -138,6 +145,7 @@ export interface FileRoutesByTo {
   '/onboarding/complete': typeof OnboardingCompleteRoute
   '/onboarding/fn-hold': typeof OnboardingFnHoldRoute
   '/onboarding/fn-space': typeof OnboardingFnSpaceRoute
+  '/onboarding/microphone': typeof OnboardingMicrophoneRoute
   '/onboarding/trigger-key': typeof OnboardingTriggerKeyRoute
   '/onboarding/welcome': typeof OnboardingWelcomeRoute
   '/preferences/about': typeof PreferencesAboutRoute
@@ -158,6 +166,7 @@ export interface FileRoutesById {
   '/onboarding/complete': typeof OnboardingCompleteRoute
   '/onboarding/fn-hold': typeof OnboardingFnHoldRoute
   '/onboarding/fn-space': typeof OnboardingFnSpaceRoute
+  '/onboarding/microphone': typeof OnboardingMicrophoneRoute
   '/onboarding/trigger-key': typeof OnboardingTriggerKeyRoute
   '/onboarding/welcome': typeof OnboardingWelcomeRoute
   '/preferences/about': typeof PreferencesAboutRoute
@@ -179,6 +188,7 @@ export interface FileRouteTypes {
     | '/onboarding/complete'
     | '/onboarding/fn-hold'
     | '/onboarding/fn-space'
+    | '/onboarding/microphone'
     | '/onboarding/trigger-key'
     | '/onboarding/welcome'
     | '/preferences/about'
@@ -195,6 +205,7 @@ export interface FileRouteTypes {
     | '/onboarding/complete'
     | '/onboarding/fn-hold'
     | '/onboarding/fn-space'
+    | '/onboarding/microphone'
     | '/onboarding/trigger-key'
     | '/onboarding/welcome'
     | '/preferences/about'
@@ -214,6 +225,7 @@ export interface FileRouteTypes {
     | '/onboarding/complete'
     | '/onboarding/fn-hold'
     | '/onboarding/fn-space'
+    | '/onboarding/microphone'
     | '/onboarding/trigger-key'
     | '/onboarding/welcome'
     | '/preferences/about'
@@ -317,6 +329,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OnboardingTriggerKeyRouteImport
       parentRoute: typeof OnboardingRouteRoute
     }
+    '/onboarding/microphone': {
+      id: '/onboarding/microphone'
+      path: '/microphone'
+      fullPath: '/onboarding/microphone'
+      preLoaderRoute: typeof OnboardingMicrophoneRouteImport
+      parentRoute: typeof OnboardingRouteRoute
+    }
     '/onboarding/fn-space': {
       id: '/onboarding/fn-space'
       path: '/fn-space'
@@ -361,6 +380,7 @@ interface OnboardingRouteRouteChildren {
   OnboardingCompleteRoute: typeof OnboardingCompleteRoute
   OnboardingFnHoldRoute: typeof OnboardingFnHoldRoute
   OnboardingFnSpaceRoute: typeof OnboardingFnSpaceRoute
+  OnboardingMicrophoneRoute: typeof OnboardingMicrophoneRoute
   OnboardingTriggerKeyRoute: typeof OnboardingTriggerKeyRoute
   OnboardingWelcomeRoute: typeof OnboardingWelcomeRoute
   OnboardingIndexRoute: typeof OnboardingIndexRoute
@@ -372,6 +392,7 @@ const OnboardingRouteRouteChildren: OnboardingRouteRouteChildren = {
   OnboardingCompleteRoute: OnboardingCompleteRoute,
   OnboardingFnHoldRoute: OnboardingFnHoldRoute,
   OnboardingFnSpaceRoute: OnboardingFnSpaceRoute,
+  OnboardingMicrophoneRoute: OnboardingMicrophoneRoute,
   OnboardingTriggerKeyRoute: OnboardingTriggerKeyRoute,
   OnboardingWelcomeRoute: OnboardingWelcomeRoute,
   OnboardingIndexRoute: OnboardingIndexRoute,

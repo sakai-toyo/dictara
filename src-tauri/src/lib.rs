@@ -20,6 +20,9 @@ fn build_specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             // Accessibility
             tauri_commands::check_accessibility_permission,
             tauri_commands::request_accessibility_permission,
+            // Microphone
+            tauri_commands::check_microphone_permission,
+            tauri_commands::open_microphone_settings,
             // App configuration
             tauri_commands::load_app_config,
             tauri_commands::save_app_config,
@@ -117,6 +120,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             tauri_commands::check_accessibility_permission,
             tauri_commands::request_accessibility_permission,
+            tauri_commands::check_microphone_permission,
+            tauri_commands::open_microphone_settings,
             tauri_commands::restart_app,
             tauri_commands::stop_recording,
             tauri_commands::cancel_recording,

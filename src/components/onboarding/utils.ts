@@ -29,6 +29,7 @@ export function getTriggerKeyboardKey(trigger: RecordingTrigger): KeyboardKey {
 export const STEPS: StepDefinition[] = [
   { id: 'welcome', label: 'Welcome', shortLabel: 'Welcome' },
   { id: 'accessibility', label: 'Accessibility', shortLabel: 'Access.' },
+  { id: 'microphone', label: 'Microphone', shortLabel: 'Mic' },
   { id: 'api_keys', label: 'API Keys', shortLabel: 'API Keys' },
   { id: 'trigger_key', label: 'Trigger Key', shortLabel: 'Trigger' },
   { id: 'fn_hold', label: 'Push to Talk', shortLabel: 'Push to Talk' },

@@ -113,6 +113,8 @@ pub enum OnboardingStep {
     Welcome,
     #[serde(rename = "accessibility")]
     Accessibility,
+    #[serde(rename = "microphone")]
+    Microphone,
     #[serde(rename = "api_keys")]
     ApiKeys,
     #[serde(rename = "trigger_key")]
