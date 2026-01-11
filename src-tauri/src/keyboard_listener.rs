@@ -39,7 +39,11 @@ impl KeyListener {
                         Some(event)
                     }
                     EventType::KeyRelease(key) if is_trigger(key) => {
-                        let _ = command_tx.blocking_send(RecordingCommand::StopRecording);
+                        // Don't send StopRecording if in locked mode - user explicitly locked
+                        // to enable hands-free recording, so key release should be ignored
+                        if !state_manager.is_recording_locked() {
+                            let _ = command_tx.blocking_send(RecordingCommand::StopRecording);
+                        }
                         Some(event)
                     }
                     EventType::KeyPress(key) if key == LOCK_MODIFIER => {

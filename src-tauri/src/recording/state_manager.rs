@@ -116,6 +116,12 @@ impl RecordingStateManager {
         self.current() == RecordingState::Recording
     }
 
+    /// Check if currently in RecordingLocked state (hands-free mode)
+    /// Used to ignore keyboard trigger release in locked mode
+    pub fn is_recording_locked(&self) -> bool {
+        self.current() == RecordingState::RecordingLocked
+    }
+
     /// Attempt a state transition based on an event
     ///
     /// This is the ONLY way to change state - ensures all transitions are valid.
@@ -181,7 +187,7 @@ impl RecordingStateManager {
 
             RecordingState::RecordingLocked => match event {
                 // Fn pressed again while locked = stop recording
-                RecordingEvent::Start => Some((
+                RecordingEvent::Start | RecordingEvent::Stop => Some((
                     RecordingState::Transcribing,
                     Some(RecordingAction::StopAndTranscribe),
                 )),
