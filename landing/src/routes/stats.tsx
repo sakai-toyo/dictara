@@ -36,6 +36,7 @@ interface ProcessedRelease {
 function processReleases(releases: Release[]): ProcessedRelease[] {
   return releases
     .filter((release) => release.assets.length > 0)
+    .filter((release) => /^v\d+\.\d+\.\d+$/.test(release.tag_name))
     .map((release) => {
       const assets = release.assets;
 

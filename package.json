@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "land": "cd landing && npm run dev",
     "dev:tauri": "tauri dev",
     "dev:tauri:no-reload": "tauri dev --no-watch",
     "build": "tsc && vite build",
