@@ -62,7 +62,7 @@ pub fn setup_app(app: &mut tauri::App<tauri::Wry>) -> Result<(), Box<dyn std::er
             let has_accessibility =
                 macos_accessibility_client::accessibility::application_is_trusted();
             if has_accessibility {
-                onboarding_config.current_step = OnboardingStep::ApiKeys;
+                onboarding_config.current_step = OnboardingStep::Microphone;
             }
         }
 
