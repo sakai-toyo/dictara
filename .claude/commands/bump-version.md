@@ -34,7 +34,7 @@ Run `npm run be:check` to update the lock file.
 
 # Step 3: Commit and push changes
 
-Commit and push changes using `/git commit` with message: `chore: bump version to x.x.x` (replace x.x.x with actual version).
+Commit and push changes using `/git commit auto accept commit message` with message: `chore: bump version to x.x.x` (replace x.x.x with actual version).
 
 # Step 4: Trigger release
 
