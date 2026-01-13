@@ -9,6 +9,7 @@ use crate::{
         cleanup_old_recordings, Controller, LastRecording, LastRecordingState, RecordingCommand,
         RecordingStateManager,
     },
+    specta,
     ui::{menu::Menu, tray::Tray, window},
 };
 use log::{error, info, warn};
@@ -28,6 +29,9 @@ pub struct AudioLevelChannel {
 
 pub fn setup_app(app: &mut tauri::App<tauri::Wry>) -> Result<(), Box<dyn std::error::Error>> {
     info!("Dictara v{}", env!("CARGO_PKG_VERSION"));
+
+    // Setup Specta for type-safe TypeScript bindings and event emission
+    specta::setup(app.handle());
 
     // Clean up old recordings from previous sessions
     cleanup_old_recordings(app.app_handle());

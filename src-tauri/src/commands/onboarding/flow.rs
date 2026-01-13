@@ -6,6 +6,7 @@ use tauri_plugin_store::StoreExt;
 // ===== ONBOARDING FLOW COMMANDS =====
 
 #[tauri::command]
+#[specta::specta]
 pub fn restart_app(app: tauri::AppHandle) {
     app.restart();
 }

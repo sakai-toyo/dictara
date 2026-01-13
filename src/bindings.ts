@@ -300,6 +300,9 @@ async checkForUpdates(showNoUpdateMessage: boolean) : Promise<Result<boolean, st
     else return { status: "error", error: e  as any };
 }
 },
+async restartApp() : Promise<void> {
+    await TAURI_INVOKE("restart_app");
+},
 async loadOnboardingConfig() : Promise<Result<OnboardingConfig, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("load_onboarding_config") };
