@@ -1,4 +1,5 @@
 mod clients;
+mod commands;
 mod config;
 mod error;
 mod globe_key;
@@ -7,7 +8,6 @@ mod keychain;
 mod models;
 mod recording;
 mod setup;
-mod tauri_commands;
 mod text_paster;
 mod ui;
 mod updater;
@@ -18,51 +18,55 @@ fn build_specta_builder() -> tauri_specta::Builder<tauri::Wry> {
         // Commands with specta support (type-safe bindings will be generated)
         .commands(tauri_specta::collect_commands![
             // Accessibility
-            tauri_commands::check_accessibility_permission,
-            tauri_commands::request_accessibility_permission,
+            commands::check_accessibility_permission,
+            commands::request_accessibility_permission,
             // Microphone
-            tauri_commands::check_microphone_permission,
-            tauri_commands::open_microphone_settings,
+            commands::check_microphone_permission,
+            commands::open_microphone_settings,
             // App configuration
-            tauri_commands::load_app_config,
-            tauri_commands::save_app_config,
+            commands::load_app_config,
+            commands::save_app_config,
+            // Provider selection
+            commands::get_current_provider,
+            commands::set_current_provider,
+            commands::clear_current_provider,
             // OpenAI provider
-            tauri_commands::load_openai_config,
-            tauri_commands::save_openai_config,
-            tauri_commands::delete_openai_config,
-            tauri_commands::test_openai_config,
+            commands::load_openai_config,
+            commands::save_openai_config,
+            commands::delete_openai_config,
+            commands::test_openai_config,
             // Azure OpenAI provider
-            tauri_commands::load_azure_openai_config,
-            tauri_commands::save_azure_openai_config,
-            tauri_commands::delete_azure_openai_config,
-            tauri_commands::test_azure_openai_config,
+            commands::load_azure_openai_config,
+            commands::save_azure_openai_config,
+            commands::delete_azure_openai_config,
+            commands::test_azure_openai_config,
             // Local model provider
-            tauri_commands::get_available_models,
-            tauri_commands::download_model,
-            tauri_commands::cancel_model_download,
-            tauri_commands::delete_model,
-            tauri_commands::load_model,
-            tauri_commands::unload_model,
-            tauri_commands::get_loaded_model,
-            tauri_commands::load_local_model_config,
-            tauri_commands::save_local_model_config,
-            tauri_commands::delete_local_model_config,
+            commands::get_available_models,
+            commands::download_model,
+            commands::cancel_model_download,
+            commands::delete_model,
+            commands::load_model,
+            commands::unload_model,
+            commands::get_loaded_model,
+            commands::load_local_model_config,
+            commands::save_local_model_config,
+            commands::delete_local_model_config,
             // Recording
-            tauri_commands::stop_recording,
-            tauri_commands::cancel_recording,
-            tauri_commands::retry_transcription,
-            tauri_commands::dismiss_error,
-            tauri_commands::resize_popup_for_error,
-            tauri_commands::register_audio_level_channel,
+            commands::stop_recording,
+            commands::cancel_recording,
+            commands::retry_transcription,
+            commands::dismiss_error,
+            commands::resize_popup_for_error,
+            commands::register_audio_level_channel,
             // Updater
             updater::check_for_updates,
             // Onboarding
-            tauri_commands::load_onboarding_config,
-            tauri_commands::save_onboarding_step,
-            tauri_commands::finish_onboarding,
-            tauri_commands::skip_onboarding,
-            tauri_commands::set_pending_restart,
-            tauri_commands::restart_onboarding,
+            commands::load_onboarding_config,
+            commands::save_onboarding_step,
+            commands::finish_onboarding,
+            commands::skip_onboarding,
+            commands::set_pending_restart,
+            commands::restart_onboarding,
         ])
         // Events with specta support (type-safe bindings will be generated)
         .events(tauri_specta::collect_events![
@@ -118,52 +122,56 @@ pub fn run() {
             setup::setup_app(app)
         })
         .invoke_handler(tauri::generate_handler![
-            tauri_commands::check_accessibility_permission,
-            tauri_commands::request_accessibility_permission,
-            tauri_commands::check_microphone_permission,
-            tauri_commands::open_microphone_settings,
-            tauri_commands::restart_app,
-            tauri_commands::stop_recording,
-            tauri_commands::cancel_recording,
+            commands::check_accessibility_permission,
+            commands::request_accessibility_permission,
+            commands::check_microphone_permission,
+            commands::open_microphone_settings,
+            commands::restart_app,
+            commands::stop_recording,
+            commands::cancel_recording,
             // App configuration
-            tauri_commands::load_app_config,
-            tauri_commands::save_app_config,
+            commands::load_app_config,
+            commands::save_app_config,
+            // Provider selection
+            commands::get_current_provider,
+            commands::set_current_provider,
+            commands::clear_current_provider,
             // OpenAI provider
-            tauri_commands::load_openai_config,
-            tauri_commands::save_openai_config,
-            tauri_commands::delete_openai_config,
-            tauri_commands::test_openai_config,
+            commands::load_openai_config,
+            commands::save_openai_config,
+            commands::delete_openai_config,
+            commands::test_openai_config,
             // Azure OpenAI provider
-            tauri_commands::load_azure_openai_config,
-            tauri_commands::save_azure_openai_config,
-            tauri_commands::delete_azure_openai_config,
-            tauri_commands::test_azure_openai_config,
+            commands::load_azure_openai_config,
+            commands::save_azure_openai_config,
+            commands::delete_azure_openai_config,
+            commands::test_azure_openai_config,
             // Local model provider
-            tauri_commands::get_available_models,
-            tauri_commands::download_model,
-            tauri_commands::cancel_model_download,
-            tauri_commands::delete_model,
-            tauri_commands::load_model,
-            tauri_commands::unload_model,
-            tauri_commands::get_loaded_model,
-            tauri_commands::load_local_model_config,
-            tauri_commands::save_local_model_config,
-            tauri_commands::delete_local_model_config,
+            commands::get_available_models,
+            commands::download_model,
+            commands::cancel_model_download,
+            commands::delete_model,
+            commands::load_model,
+            commands::unload_model,
+            commands::get_loaded_model,
+            commands::load_local_model_config,
+            commands::save_local_model_config,
+            commands::delete_local_model_config,
             // Audio
-            tauri_commands::register_audio_level_channel,
+            commands::register_audio_level_channel,
             // Error handling
-            tauri_commands::retry_transcription,
-            tauri_commands::dismiss_error,
-            tauri_commands::resize_popup_for_error,
+            commands::retry_transcription,
+            commands::dismiss_error,
+            commands::resize_popup_for_error,
             // Updater
             updater::check_for_updates,
             // Onboarding
-            tauri_commands::load_onboarding_config,
-            tauri_commands::save_onboarding_step,
-            tauri_commands::finish_onboarding,
-            tauri_commands::skip_onboarding,
-            tauri_commands::set_pending_restart,
-            tauri_commands::restart_onboarding
+            commands::load_onboarding_config,
+            commands::save_onboarding_step,
+            commands::finish_onboarding,
+            commands::skip_onboarding,
+            commands::set_pending_restart,
+            commands::restart_onboarding
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

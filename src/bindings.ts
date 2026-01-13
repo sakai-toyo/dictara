@@ -26,6 +26,9 @@ async checkMicrophonePermission() : Promise<string> {
 async openMicrophoneSettings() : Promise<void> {
     await TAURI_INVOKE("open_microphone_settings");
 },
+/**
+ * Load the entire app configuration
+ */
 async loadAppConfig() : Promise<Result<AppConfig, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("load_app_config") };
@@ -34,9 +37,45 @@ async loadAppConfig() : Promise<Result<AppConfig, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+/**
+ * Save app configuration (general-purpose command that can update multiple fields)
+ */
 async saveAppConfig(activeProvider: string | null, recordingTrigger: RecordingTrigger | null) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("save_app_config", { activeProvider, recordingTrigger }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Get the currently active provider
+ */
+async getCurrentProvider() : Promise<Result<Provider | null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_current_provider") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Set the currently active provider
+ */
+async setCurrentProvider(provider: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("set_current_provider", { provider }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Clear the currently active provider (set to None)
+ */
+async clearCurrentProvider() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("clear_current_provider") };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
