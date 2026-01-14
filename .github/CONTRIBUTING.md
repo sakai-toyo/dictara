@@ -95,6 +95,29 @@ This checks for TypeScript errors, linting issues, and runs tests.
 6. Wait for CI checks to pass
 7. Request a review
 
+## Troubleshooting
+
+### Resetting Microphone Permissions
+
+If you need to reset microphone permissions (e.g., to test the onboarding flow or fix permission issues), use the following commands:
+
+**For the released version (production app):**
+```bash
+tccutil reset Microphone app.dictara
+```
+
+**For the dev version (running from VS Code):**
+```bash
+tccutil reset Microphone com.microsoft.VSCode
+```
+
+> **Note:** This removes the app from macOS microphone permissions. The system will prompt you again the next time the app requests microphone access.
+
+To manually grant permissions, open System Settings:
+```bash
+open "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone"
+```
+
 ## Reporting Issues
 
 ### Bug Reports

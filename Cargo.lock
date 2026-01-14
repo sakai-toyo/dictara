@@ -1206,6 +1206,7 @@ name = "dictara"
 version = "0.1.23"
 dependencies = [
  "arboard",
+ "block2",
  "cpal",
  "derive_more 2.1.1",
  "dictara-keyboard",

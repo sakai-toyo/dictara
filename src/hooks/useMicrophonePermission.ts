@@ -18,6 +18,22 @@ export function useMicrophonePermission() {
 }
 
 /**
+ * Hook to request microphone permission (triggers native permission dialog).
+ */
+export function useRequestMicrophonePermission() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (): Promise<boolean> => {
+      return await commands.requestMicrophonePermission()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['microphonePermission'] })
+    },
+  })
+}
+
+/**
  * Hook to open System Settings to the Microphone pane.
  */
 export function useOpenMicrophoneSettings() {

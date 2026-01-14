@@ -21,6 +21,12 @@ async checkMicrophonePermission() : Promise<string> {
     return await TAURI_INVOKE("check_microphone_permission");
 },
 /**
+ * Request microphone permission (triggers native permission dialog)
+ */
+async requestMicrophonePermission() : Promise<boolean> {
+    return await TAURI_INVOKE("request_microphone_permission");
+},
+/**
  * Open System Settings to the Microphone privacy pane
  */
 async openMicrophoneSettings() : Promise<void> {

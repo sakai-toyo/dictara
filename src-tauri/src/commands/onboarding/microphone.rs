@@ -34,6 +34,43 @@ pub fn check_microphone_permission() -> String {
     }
 }
 
+/// Request microphone permission (triggers native permission dialog)
+#[tauri::command]
+#[specta::specta]
+pub async fn request_microphone_permission() -> bool {
+    #[cfg(target_os = "macos")]
+    {
+        use objc2::runtime::Bool;
+        use objc2_av_foundation::{AVCaptureDevice, AVMediaTypeAudio};
+        use std::sync::mpsc;
+
+        // Safety: AVMediaTypeAudio is an extern static that must be accessed in unsafe block
+        let media_type = match unsafe { AVMediaTypeAudio } {
+            Some(mt) => mt,
+            None => return false,
+        };
+
+        // Create a channel to communicate between the callback and async context
+        let (tx, rx) = mpsc::channel::<bool>();
+
+        // Safety: media_type is a valid NSString reference
+        // This will trigger the native permission dialog if not yet determined
+        unsafe {
+            let block = block2::RcBlock::new(move |granted: Bool| {
+                let _ = tx.send(granted.as_bool());
+            });
+            AVCaptureDevice::requestAccessForMediaType_completionHandler(media_type, &block);
+        }
+
+        // Wait for the callback to complete
+        rx.recv().unwrap_or(false)
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        true // Other platforms don't need this permission
+    }
+}
+
 /// Open System Settings to the Microphone privacy pane
 #[tauri::command]
 #[specta::specta]

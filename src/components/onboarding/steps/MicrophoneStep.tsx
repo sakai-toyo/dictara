@@ -1,12 +1,17 @@
 import { StepContainer } from '../StepContainer'
 import { useOnboardingNavigation } from '@/hooks/useOnboardingNavigation'
-import { useMicrophonePermission, useOpenMicrophoneSettings } from '@/hooks/useMicrophonePermission'
+import {
+  useMicrophonePermission,
+  useRequestMicrophonePermission,
+  useOpenMicrophoneSettings,
+} from '@/hooks/useMicrophonePermission'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { CheckCircle2, AlertCircle, Mic, Settings } from 'lucide-react'
 
 export function MicrophoneStep() {
   const { data: permissionStatus, isLoading: isChecking } = useMicrophonePermission()
+  const requestPermission = useRequestMicrophonePermission()
   const openSettings = useOpenMicrophoneSettings()
   const { goNext, goBack, skipOnboarding, isNavigating } = useOnboardingNavigation()
 
@@ -113,7 +118,7 @@ export function MicrophoneStep() {
     )
   }
 
-  // Permission not determined - show button to open System Settings
+  // Permission not determined - show button to request permission (triggers native dialog)
   return (
     <StepContainer
       title="Microphone Permission"
@@ -122,7 +127,7 @@ export function MicrophoneStep() {
       nextDisabled={!isAuthorized}
       onBack={() => goBack('microphone')}
       onSkip={() => skipOnboarding.mutate()}
-      isLoading={isNavigating || skipOnboarding.isPending || openSettings.isPending}
+      isLoading={isNavigating || skipOnboarding.isPending || requestPermission.isPending}
     >
       <div className="space-y-6">
         <div className="flex justify-center py-4">
@@ -137,15 +142,19 @@ export function MicrophoneStep() {
         </p>
 
         <div className="flex items-start gap-3 p-4 bg-muted/50 rounded-lg">
-          <Settings className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
+          <Mic className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />
           <div className="space-y-2">
-            <p className="text-sm font-medium">Enable Microphone Access</p>
+            <p className="text-sm font-medium">Grant Microphone Access</p>
             <p className="text-sm text-muted-foreground">
-              Click the button below to open System Settings. Find "Dictara" in the list and toggle
-              it ON.
+              Click the button below to grant microphone access. A system dialog will appear asking
+              for your permission.
             </p>
-            <Button variant="default" onClick={() => openSettings.mutate()}>
-              Open System Settings
+            <Button
+              variant="default"
+              onClick={() => requestPermission.mutate()}
+              disabled={requestPermission.isPending}
+            >
+              {requestPermission.isPending ? 'Requesting...' : 'Request Permission'}
             </Button>
           </div>
         </div>
@@ -153,7 +162,7 @@ export function MicrophoneStep() {
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            After enabling the permission, this page will automatically update.
+            After granting the permission, this page will automatically update.
           </AlertDescription>
         </Alert>
       </div>

@@ -9,6 +9,7 @@ macro_rules! with_commands {
             $crate::commands::request_accessibility_permission,
             // Microphone
             $crate::commands::check_microphone_permission,
+            $crate::commands::request_microphone_permission,
             $crate::commands::open_microphone_settings,
             // App configuration
             $crate::commands::load_app_config,
