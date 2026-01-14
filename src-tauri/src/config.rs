@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 /// Provider types supported by the application
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, specta::Type)]
@@ -39,8 +39,34 @@ impl RecordingTrigger {
     }
 }
 
+use std::marker::PhantomData;
+
+/// Type-safe configuration key that associates a key name with its value type
+#[derive(Debug, Clone, Copy)]
+#[allow(dead_code)]
+pub struct ConfigKey<T> {
+    name: &'static str,
+    _phantom: PhantomData<T>,
+}
+
+impl<T> ConfigKey<T> {
+    const fn new(name: &'static str) -> Self {
+        Self {
+            name,
+            _phantom: PhantomData,
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn key_name(&self) -> &'static str {
+        self.name
+    }
+}
+
+// ===== App Configuration =====
+
 /// App configuration (stored locally)
-#[derive(Debug, Clone, Serialize, Deserialize, Default, specta::Type)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct AppConfig {
     /// Currently active provider (only one can be active)
@@ -51,59 +77,12 @@ pub struct AppConfig {
     pub recording_trigger: RecordingTrigger,
 }
 
-/// OpenAI provider configuration (stored in keychain)
-#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub struct OpenAIConfig {
-    pub api_key: String,
+impl ConfigKey<AppConfig> {
+    #[allow(dead_code)]
+    pub const APP: Self = Self::new("appConfig");
 }
 
-/// Azure OpenAI provider configuration (stored in keychain)
-#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub struct AzureOpenAIConfig {
-    pub api_key: String,
-    pub endpoint: String,
-}
-
-/// Local model provider configuration (stored in local store, not keychain)
-#[derive(Debug, Clone, Serialize, Deserialize, Default, specta::Type)]
-#[serde(rename_all = "camelCase")]
-pub struct LocalModelConfig {
-    /// Name of the selected model (e.g., "whisper-small")
-    pub selected_model: Option<String>,
-}
-
-/// Load local model configuration from store
-pub fn load_local_model_config(
-    store: &tauri_plugin_store::Store<tauri::Wry>,
-) -> Option<LocalModelConfig> {
-    store
-        .get("localModelConfig")
-        .and_then(|v| serde_json::from_value(v).ok())
-}
-
-/// Save local model configuration to store
-pub fn save_local_model_config(
-    store: &tauri_plugin_store::Store<tauri::Wry>,
-    config: &LocalModelConfig,
-) -> Result<(), String> {
-    store.set(
-        "localModelConfig",
-        serde_json::to_value(config).map_err(|e| e.to_string())?,
-    );
-    store.save().map_err(|e| e.to_string())?;
-    Ok(())
-}
-
-/// Delete local model configuration from store
-pub fn delete_local_model_config(
-    store: &tauri_plugin_store::Store<tauri::Wry>,
-) -> Result<(), String> {
-    store.delete("localModelConfig");
-    store.save().map_err(|e| e.to_string())?;
-    Ok(())
-}
+// ===== Onboarding Configuration =====
 
 /// Onboarding step enum - tracks current position in the wizard
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, specta::Type, Default)]
@@ -128,7 +107,7 @@ pub enum OnboardingStep {
 }
 
 /// Onboarding configuration (stored locally)
-#[derive(Debug, Clone, Serialize, Deserialize, Default, specta::Type)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct OnboardingConfig {
     /// Whether the user has completed or skipped onboarding
@@ -141,7 +120,82 @@ pub struct OnboardingConfig {
     pub pending_restart: bool,
 }
 
+impl ConfigKey<OnboardingConfig> {
+    #[allow(dead_code)]
+    pub const ONBOARDING: Self = Self::new("onboardingConfig");
+}
+
+// ===== Local Model Configuration =====
+
+/// Local model provider configuration (stored in local store, not keychain)
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalModelConfig {
+    /// Name of the selected model (e.g., "whisper-small")
+    pub selected_model: Option<String>,
+}
+
+impl ConfigKey<LocalModelConfig> {
+    #[allow(dead_code)]
+    pub const LOCAL_MODEL: Self = Self::new("localModelConfig");
+}
+
+// ===== Keychain-stored Configurations (no keys) =====
+
+/// OpenAI provider configuration (stored in keychain)
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct OpenAIConfig {
+    pub api_key: String,
+}
+
+/// Azure OpenAI provider configuration (stored in keychain)
+#[derive(Debug, Clone, Serialize, Deserialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct AzureOpenAIConfig {
+    pub api_key: String,
+    pub endpoint: String,
+}
+
+/// Load local model configuration from store
+/// TODO: Migrate to use ConfigStore::get(ConfigKey::LOCAL_MODEL)
+pub fn load_local_model_config(
+    store: &tauri_plugin_store::Store<tauri::Wry>,
+) -> Option<LocalModelConfig> {
+    store
+        .get("localModelConfig")
+        .and_then(|v| serde_json::from_value(v).ok())
+}
+
+/// Save local model configuration to store
+/// TODO: Migrate to use ConfigStore::set(ConfigKey::LOCAL_MODEL, config)
+pub fn save_local_model_config(
+    store: &tauri_plugin_store::Store<tauri::Wry>,
+    config: &LocalModelConfig,
+) -> Result<(), String> {
+    store.set(
+        "localModelConfig",
+        serde_json::to_value(config).map_err(|e| e.to_string())?,
+    );
+    store.save().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Delete local model configuration from store
+/// TODO: Migrate to use ConfigStore::delete(ConfigKey::LOCAL_MODEL)
+pub fn delete_local_model_config(
+    store: &tauri_plugin_store::Store<tauri::Wry>,
+) -> Result<(), String> {
+    store.delete("localModelConfig");
+    store.save().map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+// ===== Legacy Helper Functions =====
+// TODO: Migrate to ConfigStore trait using ConfigKey constants
+
 /// Load app configuration from store
+/// TODO: Migrate to use ConfigStore::get(ConfigKey::APP)
 pub fn load_app_config(store: &tauri_plugin_store::Store<tauri::Wry>) -> AppConfig {
     // Try camelCase first, fall back to legacy snake_case
     store
@@ -152,6 +206,7 @@ pub fn load_app_config(store: &tauri_plugin_store::Store<tauri::Wry>) -> AppConf
 }
 
 /// Save app configuration to store
+/// TODO: Migrate to use ConfigStore::set(ConfigKey::APP, config)
 pub fn save_app_config(
     store: &tauri_plugin_store::Store<tauri::Wry>,
     config: &AppConfig,
@@ -165,6 +220,7 @@ pub fn save_app_config(
 }
 
 /// Load onboarding configuration from store
+/// TODO: Migrate to use ConfigStore::get(ConfigKey::ONBOARDING)
 pub fn load_onboarding_config(store: &tauri_plugin_store::Store<tauri::Wry>) -> OnboardingConfig {
     // Try camelCase first, fall back to legacy snake_case
     store
@@ -175,6 +231,7 @@ pub fn load_onboarding_config(store: &tauri_plugin_store::Store<tauri::Wry>) -> 
 }
 
 /// Save onboarding configuration to store
+/// TODO: Migrate to use ConfigStore::set(ConfigKey::ONBOARDING, config)
 pub fn save_onboarding_config(
     store: &tauri_plugin_store::Store<tauri::Wry>,
     config: &OnboardingConfig,
@@ -185,4 +242,287 @@ pub fn save_onboarding_config(
     );
     store.save().map_err(|e| e.to_string())?;
     Ok(())
+}
+
+// ===== Type-Safe Config Store =====
+
+#[allow(dead_code)]
+pub trait ConfigStore {
+    fn get<T: DeserializeOwned>(&self, key: &ConfigKey<T>) -> Option<T>;
+    fn set<T: Serialize>(&self, key: &ConfigKey<T>, value: T) -> Result<(), String>;
+    fn delete<T>(&self, key: &ConfigKey<T>) -> Result<(), String>;
+}
+
+#[allow(dead_code)]
+pub struct Config<'a> {
+    store: &'a tauri_plugin_store::Store<tauri::Wry>,
+}
+
+impl<'a> Config<'a> {
+    #[allow(dead_code)]
+    pub fn new(store: &'a tauri_plugin_store::Store<tauri::Wry>) -> Self {
+        Self { store }
+    }
+}
+
+impl<'a> ConfigStore for Config<'a> {
+    fn get<T: DeserializeOwned>(&self, key: &ConfigKey<T>) -> Option<T> {
+        self.store
+            .get(key.key_name())
+            .and_then(|v| serde_json::from_value(v).ok())
+    }
+
+    fn set<T: Serialize>(&self, key: &ConfigKey<T>, value: T) -> Result<(), String> {
+        let val = serde_json::to_value(value).map_err(|e| e.to_string())?;
+        self.store.set(key.key_name(), val);
+        self.store.save().map_err(|e| e.to_string())?;
+        Ok(())
+    }
+
+    fn delete<T>(&self, key: &ConfigKey<T>) -> Result<(), String> {
+        self.store.delete(key.key_name());
+        self.store.save().map_err(|e| e.to_string())?;
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::cell::RefCell;
+    use std::collections::HashMap;
+
+    // Simple in-memory mock store for testing
+    struct MockConfigStore {
+        data: RefCell<HashMap<String, serde_json::Value>>,
+    }
+
+    impl MockConfigStore {
+        fn new() -> Self {
+            Self {
+                data: RefCell::new(HashMap::new()),
+            }
+        }
+    }
+
+    impl ConfigStore for MockConfigStore {
+        fn get<T: DeserializeOwned>(&self, key: &ConfigKey<T>) -> Option<T> {
+            self.data
+                .borrow()
+                .get(key.key_name())
+                .and_then(|v| serde_json::from_value(v.clone()).ok())
+        }
+
+        fn set<T: Serialize>(&self, key: &ConfigKey<T>, value: T) -> Result<(), String> {
+            let val = serde_json::to_value(value).map_err(|e| e.to_string())?;
+            self.data
+                .borrow_mut()
+                .insert(key.key_name().to_string(), val);
+            Ok(())
+        }
+
+        fn delete<T>(&self, key: &ConfigKey<T>) -> Result<(), String> {
+            self.data.borrow_mut().remove(key.key_name());
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn test_app_config_store() {
+        let test_cases = vec![(
+            "AppConfig with all fields set",
+            ConfigKey::APP,
+            AppConfig {
+                active_provider: Some(Provider::OpenAI),
+                recording_trigger: RecordingTrigger::Control,
+            },
+        )];
+
+        for (description, key, config) in test_cases {
+            let store = MockConfigStore::new();
+            test_config_lifecycle(&store, &key, config, description);
+        }
+    }
+
+    #[test]
+    fn test_onboarding_config_store() {
+        let test_cases = vec![
+            (
+                "OnboardingConfig with all fields set",
+                ConfigKey::ONBOARDING,
+                OnboardingConfig {
+                    finished: true,
+                    current_step: OnboardingStep::ApiKeys,
+                    pending_restart: false,
+                },
+            ),
+            (
+                "OnboardingConfig with defaults",
+                ConfigKey::ONBOARDING,
+                OnboardingConfig {
+                    finished: false,
+                    current_step: OnboardingStep::Welcome,
+                    pending_restart: false,
+                },
+            ),
+            (
+                "OnboardingConfig with pending restart",
+                ConfigKey::ONBOARDING,
+                OnboardingConfig {
+                    finished: false,
+                    current_step: OnboardingStep::Accessibility,
+                    pending_restart: true,
+                },
+            ),
+            (
+                "OnboardingConfig completed",
+                ConfigKey::ONBOARDING,
+                OnboardingConfig {
+                    finished: true,
+                    current_step: OnboardingStep::Complete,
+                    pending_restart: false,
+                },
+            ),
+        ];
+
+        for (description, key, config) in test_cases {
+            let store = MockConfigStore::new();
+            test_config_lifecycle(&store, &key, config, description);
+        }
+    }
+
+    #[test]
+    fn test_local_model_config_store() {
+        let test_cases = vec![
+            (
+                "LocalModelConfig with model selected",
+                ConfigKey::LOCAL_MODEL,
+                LocalModelConfig {
+                    selected_model: Some("whisper-small".to_string()),
+                },
+            ),
+            (
+                "LocalModelConfig with no model",
+                ConfigKey::LOCAL_MODEL,
+                LocalModelConfig {
+                    selected_model: None,
+                },
+            ),
+            (
+                "LocalModelConfig with large model",
+                ConfigKey::LOCAL_MODEL,
+                LocalModelConfig {
+                    selected_model: Some("whisper-large-v3".to_string()),
+                },
+            ),
+        ];
+
+        for (description, key, config) in test_cases {
+            let store = MockConfigStore::new();
+            test_config_lifecycle(&store, &key, config, description);
+        }
+    }
+
+    // Helper function to check if a string is in camelCase format
+    fn is_camel_case(s: &str) -> bool {
+        if s.is_empty() {
+            return false;
+        }
+
+        let mut chars = s.chars();
+
+        // First character must be lowercase letter
+        if let Some(first) = chars.next() {
+            if !first.is_ascii_lowercase() {
+                return false;
+            }
+        }
+
+        // Rest can be letters or digits, but no underscores or hyphens
+        for c in chars {
+            if !c.is_alphanumeric() {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    // Helper function to verify camelCase format dynamically
+    fn verify_camel_case<T>(store: &MockConfigStore, key: &ConfigKey<T>) {
+        // Verify the config key name itself is camelCase
+        assert!(
+            is_camel_case(key.key_name()),
+            "Config key '{}' should be camelCase",
+            key.key_name()
+        );
+
+        // Get the stored JSON and verify all field keys are camelCase
+        let stored_json = store.data.borrow().get(key.key_name()).cloned();
+        if let Some(json_value) = stored_json {
+            if let Some(obj) = json_value.as_object() {
+                for field_key in obj.keys() {
+                    assert!(
+                        is_camel_case(field_key),
+                        "Field '{}' in {} should be camelCase",
+                        field_key,
+                        key.key_name()
+                    );
+                }
+            }
+        }
+    }
+
+    // Helper function to test the full lifecycle of a config
+    fn test_config_lifecycle<T>(
+        store: &MockConfigStore,
+        key: &ConfigKey<T>,
+        test_config: T,
+        description: &str,
+    ) where
+        T: Serialize + DeserializeOwned + PartialEq + std::fmt::Debug + Clone,
+    {
+        // Step 1: Get should return None before setting
+        let result: Option<T> = store.get(key);
+        assert!(
+            result.is_none(),
+            "{}: Get should return None before set",
+            description
+        );
+
+        // Step 2: Set the value
+        store
+            .set(key, test_config.clone())
+            .expect(&format!("{}: Set should succeed", description));
+
+        // Step 3: Get should return the same object
+        let result: Option<T> = store.get(key);
+        assert!(
+            result.is_some(),
+            "{}: Get should return Some after set",
+            description
+        );
+        let retrieved_config = result.unwrap();
+        assert_eq!(
+            retrieved_config, test_config,
+            "{}: Retrieved config should match",
+            description
+        );
+
+        // Step 4: Verify camelCase formatting
+        verify_camel_case(&store, key);
+
+        // Step 5: Delete the value
+        store
+            .delete(key)
+            .expect(&format!("{}: Delete should succeed", description));
+
+        // Step 6: Get should return None after delete
+        let result: Option<T> = store.get(key);
+        assert!(
+            result.is_none(),
+            "{}: Get should return None after delete",
+            description
+        );
+    }
 }
