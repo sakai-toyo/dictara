@@ -1,36 +1,26 @@
-use crate::config::{self, AppConfig, Provider, RecordingTrigger};
+use crate::config::{self, AppConfig, ConfigKey, ConfigStore, Provider, RecordingTrigger};
 use log::error;
-use tauri_plugin_store::StoreExt;
+use tauri::State;
 
 // ===== GENERAL APP CONFIGURATION COMMANDS =====
 
 /// Load the entire app configuration
 #[tauri::command]
 #[specta::specta]
-pub fn load_app_config(app: tauri::AppHandle) -> Result<AppConfig, String> {
-    let store = app.store("config.json").map_err(|e| {
-        error!("Failed to open store: {}", e);
-        format!("Failed to open store: {}", e)
-    })?;
-
-    Ok(config::load_app_config(&store))
+pub fn load_app_config(config_store: State<config::Config>) -> Result<AppConfig, String> {
+    Ok(config_store.get(&ConfigKey::APP).unwrap_or_default())
 }
 
 /// Save app configuration (general-purpose command that can update multiple fields)
 #[tauri::command]
 #[specta::specta]
 pub fn save_app_config(
-    app: tauri::AppHandle,
+    config_store: State<config::Config>,
     active_provider: Option<String>,
     recording_trigger: Option<RecordingTrigger>,
 ) -> Result<(), String> {
-    let store = app.store("config.json").map_err(|e| {
-        error!("Failed to open store: {}", e);
-        format!("Failed to open store: {}", e)
-    })?;
-
     // Load existing config to preserve fields that aren't being updated
-    let mut config = config::load_app_config(&store);
+    let mut config = config_store.get(&ConfigKey::APP).unwrap_or_default();
 
     // Update provider if specified
     if let Some(p) = active_provider {
@@ -50,5 +40,5 @@ pub fn save_app_config(
         config.recording_trigger = trigger;
     }
 
-    config::save_app_config(&store, &config)
+    config_store.set(&ConfigKey::APP, config)
 }

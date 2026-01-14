@@ -157,115 +157,27 @@ pub struct AzureOpenAIConfig {
     pub endpoint: String,
 }
 
-/// Load local model configuration from store
-/// TODO: Migrate to use ConfigStore::get(ConfigKey::LOCAL_MODEL)
-pub fn load_local_model_config(
-    store: &tauri_plugin_store::Store<tauri::Wry>,
-) -> Option<LocalModelConfig> {
-    store
-        .get("localModelConfig")
-        .and_then(|v| serde_json::from_value(v).ok())
-}
-
-/// Save local model configuration to store
-/// TODO: Migrate to use ConfigStore::set(ConfigKey::LOCAL_MODEL, config)
-pub fn save_local_model_config(
-    store: &tauri_plugin_store::Store<tauri::Wry>,
-    config: &LocalModelConfig,
-) -> Result<(), String> {
-    store.set(
-        "localModelConfig",
-        serde_json::to_value(config).map_err(|e| e.to_string())?,
-    );
-    store.save().map_err(|e| e.to_string())?;
-    Ok(())
-}
-
-/// Delete local model configuration from store
-/// TODO: Migrate to use ConfigStore::delete(ConfigKey::LOCAL_MODEL)
-pub fn delete_local_model_config(
-    store: &tauri_plugin_store::Store<tauri::Wry>,
-) -> Result<(), String> {
-    store.delete("localModelConfig");
-    store.save().map_err(|e| e.to_string())?;
-    Ok(())
-}
-
-// ===== Legacy Helper Functions =====
-// TODO: Migrate to ConfigStore trait using ConfigKey constants
-
-/// Load app configuration from store
-/// TODO: Migrate to use ConfigStore::get(ConfigKey::APP)
-pub fn load_app_config(store: &tauri_plugin_store::Store<tauri::Wry>) -> AppConfig {
-    // Try camelCase first, fall back to legacy snake_case
-    store
-        .get("appConfig")
-        .or_else(|| store.get("app_config"))
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default()
-}
-
-/// Save app configuration to store
-/// TODO: Migrate to use ConfigStore::set(ConfigKey::APP, config)
-pub fn save_app_config(
-    store: &tauri_plugin_store::Store<tauri::Wry>,
-    config: &AppConfig,
-) -> Result<(), String> {
-    store.set(
-        "appConfig",
-        serde_json::to_value(config).map_err(|e| e.to_string())?,
-    );
-    store.save().map_err(|e| e.to_string())?;
-    Ok(())
-}
-
-/// Load onboarding configuration from store
-/// TODO: Migrate to use ConfigStore::get(ConfigKey::ONBOARDING)
-pub fn load_onboarding_config(store: &tauri_plugin_store::Store<tauri::Wry>) -> OnboardingConfig {
-    // Try camelCase first, fall back to legacy snake_case
-    store
-        .get("onboardingConfig")
-        .or_else(|| store.get("onboarding_config"))
-        .and_then(|v| serde_json::from_value(v).ok())
-        .unwrap_or_default()
-}
-
-/// Save onboarding configuration to store
-/// TODO: Migrate to use ConfigStore::set(ConfigKey::ONBOARDING, config)
-pub fn save_onboarding_config(
-    store: &tauri_plugin_store::Store<tauri::Wry>,
-    config: &OnboardingConfig,
-) -> Result<(), String> {
-    store.set(
-        "onboardingConfig",
-        serde_json::to_value(config).map_err(|e| e.to_string())?,
-    );
-    store.save().map_err(|e| e.to_string())?;
-    Ok(())
-}
-
 // ===== Type-Safe Config Store =====
 
-#[allow(dead_code)]
 pub trait ConfigStore {
     fn get<T: DeserializeOwned>(&self, key: &ConfigKey<T>) -> Option<T>;
     fn set<T: Serialize>(&self, key: &ConfigKey<T>, value: T) -> Result<(), String>;
     fn delete<T>(&self, key: &ConfigKey<T>) -> Result<(), String>;
 }
 
-#[allow(dead_code)]
-pub struct Config<'a> {
-    store: &'a tauri_plugin_store::Store<tauri::Wry>,
+/// Type-safe configuration store that wraps the Tauri plugin store
+#[derive(Clone)]
+pub struct Config {
+    store: std::sync::Arc<tauri_plugin_store::Store<tauri::Wry>>,
 }
 
-impl<'a> Config<'a> {
-    #[allow(dead_code)]
-    pub fn new(store: &'a tauri_plugin_store::Store<tauri::Wry>) -> Self {
+impl Config {
+    pub fn new(store: std::sync::Arc<tauri_plugin_store::Store<tauri::Wry>>) -> Self {
         Self { store }
     }
 }
 
-impl<'a> ConfigStore for Config<'a> {
+impl ConfigStore for Config {
     fn get<T: DeserializeOwned>(&self, key: &ConfigKey<T>) -> Option<T> {
         self.store
             .get(key.key_name())

@@ -1,9 +1,7 @@
-use crate::config::{self, LocalModelConfig};
+use crate::config::{self, ConfigKey, ConfigStore, LocalModelConfig};
 use crate::models::{ModelInfo, ModelLoader, ModelManager};
-use log::error;
 use std::sync::Arc;
 use tauri::State;
-use tauri_plugin_store::StoreExt;
 
 // ===== LOCAL MODEL COMMANDS =====
 
@@ -77,39 +75,29 @@ pub fn get_loaded_model(model_loader: State<Arc<ModelLoader>>) -> Option<String>
 /// Load local model configuration
 #[tauri::command]
 #[specta::specta]
-pub fn load_local_model_config(app: tauri::AppHandle) -> Result<Option<LocalModelConfig>, String> {
-    let store = app.store("config.json").map_err(|e| {
-        error!("Failed to open store: {}", e);
-        format!("Failed to open store: {}", e)
-    })?;
-
-    Ok(config::load_local_model_config(&store))
+pub fn load_local_model_config(
+    config_store: State<config::Config>,
+) -> Result<Option<LocalModelConfig>, String> {
+    Ok(config_store.get(&ConfigKey::LOCAL_MODEL))
 }
 
 /// Save local model configuration (selected model)
 #[tauri::command]
 #[specta::specta]
-pub fn save_local_model_config(app: tauri::AppHandle, model_name: String) -> Result<(), String> {
-    let store = app.store("config.json").map_err(|e| {
-        error!("Failed to open store: {}", e);
-        format!("Failed to open store: {}", e)
-    })?;
-
+pub fn save_local_model_config(
+    config_store: State<config::Config>,
+    model_name: String,
+) -> Result<(), String> {
     let config = LocalModelConfig {
         selected_model: Some(model_name),
     };
 
-    config::save_local_model_config(&store, &config)
+    config_store.set(&ConfigKey::LOCAL_MODEL, config)
 }
 
 /// Delete local model configuration
 #[tauri::command]
 #[specta::specta]
-pub fn delete_local_model_config(app: tauri::AppHandle) -> Result<(), String> {
-    let store = app.store("config.json").map_err(|e| {
-        error!("Failed to open store: {}", e);
-        format!("Failed to open store: {}", e)
-    })?;
-
-    config::delete_local_model_config(&store)
+pub fn delete_local_model_config(config_store: State<config::Config>) -> Result<(), String> {
+    config_store.delete(&ConfigKey::LOCAL_MODEL)
 }

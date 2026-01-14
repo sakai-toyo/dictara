@@ -1,6 +1,8 @@
 use crate::updater::{self, Updater};
 use crate::{
-    config::{self, AzureOpenAIConfig, OnboardingStep, OpenAIConfig, Provider},
+    config::{
+        self, AzureOpenAIConfig, ConfigKey, ConfigStore, OnboardingStep, OpenAIConfig, Provider,
+    },
     globe_key,
     keyboard_listener::KeyListener,
     keychain::{self, ProviderAccount},
@@ -53,8 +55,13 @@ pub fn setup_app(app: &mut tauri::App<tauri::Wry>) -> Result<(), Box<dyn std::er
 
     // Load app config and check if properly configured
     let store = app.store("config.json")?;
-    let app_config = config::load_app_config(&store);
-    let mut onboarding_config = config::load_onboarding_config(&store);
+
+    // Create and register Config as managed state
+    let config_store = config::Config::new(store.clone());
+    app.manage(config_store.clone());
+
+    let app_config = config_store.get(&ConfigKey::APP).unwrap_or_default();
+    let mut onboarding_config = config_store.get(&ConfigKey::ONBOARDING).unwrap_or_default();
 
     // Handle pending restart from accessibility step
     if onboarding_config.pending_restart {
@@ -71,7 +78,7 @@ pub fn setup_app(app: &mut tauri::App<tauri::Wry>) -> Result<(), Box<dyn std::er
         }
 
         // Save the updated config
-        config::save_onboarding_config(&store, &onboarding_config)?;
+        config_store.set(&ConfigKey::ONBOARDING, onboarding_config.clone())?;
     }
 
     // Initialize ModelManager and ModelLoader for local transcription
@@ -97,7 +104,7 @@ pub fn setup_app(app: &mut tauri::App<tauri::Wry>) -> Result<(), Box<dyn std::er
         }
         Some(Provider::Local) => {
             // Local provider is configured if a model is selected AND downloaded
-            let local_config = config::load_local_model_config(&store);
+            let local_config = config_store.get(&ConfigKey::LOCAL_MODEL);
             match local_config {
                 Some(cfg) => {
                     cfg.selected_model.is_none()
@@ -120,7 +127,7 @@ pub fn setup_app(app: &mut tauri::App<tauri::Wry>) -> Result<(), Box<dyn std::er
 
     // Eager load local model if Local provider is active and model is selected/downloaded
     if app_config.active_provider == Some(Provider::Local) {
-        if let Some(local_config) = config::load_local_model_config(&store) {
+        if let Some(local_config) = config_store.get(&ConfigKey::LOCAL_MODEL) {
             if let Some(model_name) = local_config.selected_model {
                 if model_manager.is_model_downloaded(&model_name) {
                     info!("Eagerly loading local model: {}", model_name);

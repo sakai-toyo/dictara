@@ -3,9 +3,10 @@ use std::sync::Arc;
 
 use log::{error, warn};
 use tauri::{AppHandle, Manager};
-use tauri_plugin_store::StoreExt;
 
-use crate::config::{self, AzureOpenAIConfig, LocalModelConfig, OpenAIConfig, Provider};
+use crate::config::{
+    self, AzureOpenAIConfig, ConfigKey, ConfigStore, LocalModelConfig, OpenAIConfig, Provider,
+};
 use crate::keychain::{self, ProviderAccount};
 use crate::models::{is_model_in_catalog, ModelLoader, ModelManager};
 
@@ -40,11 +41,9 @@ impl Transcriber {
     ///
     /// The app handle is needed for local provider to access ModelLoader state.
     pub fn from_app(app: &AppHandle) -> Result<Self, TranscriptionError> {
-        let store = app
-            .store("config.json")
-            .map_err(|e| TranscriptionError::ApiError(format!("Failed to open store: {}", e)))?;
+        let config_store = app.state::<config::Config>();
 
-        let app_config = config::load_app_config(&store);
+        let app_config = config_store.get(&ConfigKey::APP).unwrap_or_default();
 
         let provider = app_config
             .active_provider
@@ -172,11 +171,9 @@ impl Transcriber {
         app: &AppHandle,
     ) -> Result<Box<dyn TranscriptionService>, TranscriptionError> {
         // Load local model config
-        let store = app
-            .store("config.json")
-            .map_err(|e| TranscriptionError::ApiError(format!("Failed to open store: {}", e)))?;
+        let config_store = app.state::<config::Config>();
 
-        let local_config: Option<LocalModelConfig> = config::load_local_model_config(&store);
+        let local_config: Option<LocalModelConfig> = config_store.get(&ConfigKey::LOCAL_MODEL);
         let selected_model = local_config
             .and_then(|c| c.selected_model)
             .ok_or(TranscriptionError::NoModelSelected)?;

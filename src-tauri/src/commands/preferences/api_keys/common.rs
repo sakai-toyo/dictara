@@ -1,33 +1,28 @@
-use crate::config::{self, Provider};
+use crate::config::{self, ConfigKey, ConfigStore, Provider};
 use log::error;
-use tauri_plugin_store::StoreExt;
+use tauri::State;
 
 // ===== PROVIDER SELECTION COMMANDS =====
 
 /// Get the currently active provider
 #[tauri::command]
 #[specta::specta]
-pub fn get_current_provider(app: tauri::AppHandle) -> Result<Option<Provider>, String> {
-    let store = app.store("config.json").map_err(|e| {
-        error!("Failed to open store: {}", e);
-        format!("Failed to open store: {}", e)
-    })?;
-
-    let config = config::load_app_config(&store);
+pub fn get_current_provider(
+    config_store: State<config::Config>,
+) -> Result<Option<Provider>, String> {
+    let config = config_store.get(&ConfigKey::APP).unwrap_or_default();
     Ok(config.active_provider)
 }
 
 /// Set the currently active provider
 #[tauri::command]
 #[specta::specta]
-pub fn set_current_provider(app: tauri::AppHandle, provider: String) -> Result<(), String> {
-    let store = app.store("config.json").map_err(|e| {
-        error!("Failed to open store: {}", e);
-        format!("Failed to open store: {}", e)
-    })?;
-
+pub fn set_current_provider(
+    config_store: State<config::Config>,
+    provider: String,
+) -> Result<(), String> {
     // Load existing config to preserve other fields
-    let mut config = config::load_app_config(&store);
+    let mut config = config_store.get(&ConfigKey::APP).unwrap_or_default();
 
     // Parse and set the provider
     config.active_provider = Some(match provider.as_str() {
@@ -40,21 +35,16 @@ pub fn set_current_provider(app: tauri::AppHandle, provider: String) -> Result<(
         }
     });
 
-    config::save_app_config(&store, &config)
+    config_store.set(&ConfigKey::APP, config)
 }
 
 /// Clear the currently active provider (set to None)
 #[tauri::command]
 #[specta::specta]
-pub fn clear_current_provider(app: tauri::AppHandle) -> Result<(), String> {
-    let store = app.store("config.json").map_err(|e| {
-        error!("Failed to open store: {}", e);
-        format!("Failed to open store: {}", e)
-    })?;
-
+pub fn clear_current_provider(config_store: State<config::Config>) -> Result<(), String> {
     // Load existing config to preserve other fields
-    let mut config = config::load_app_config(&store);
+    let mut config = config_store.get(&ConfigKey::APP).unwrap_or_default();
     config.active_provider = None;
 
-    config::save_app_config(&store, &config)
+    config_store.set(&ConfigKey::APP, config)
 }
