@@ -1,5 +1,6 @@
 use log::error;
 use std::sync::mpsc;
+use tauri::window::Color;
 use tauri::{Manager, Monitor};
 
 type AnyError = Box<dyn std::error::Error + Send + Sync>;
@@ -231,6 +232,7 @@ pub fn open_preferences_window(app_handle: &tauri::AppHandle) -> Result<(), AnyE
         .inner_size(width, height)
         .min_inner_size(width, height)
         // .max_inner_size(width, height)
+        .background_color(Color(10, 10, 10, 255)) // Dark background to prevent white flash
         .visible(false)
         .build()?,
     };
@@ -257,6 +259,7 @@ pub fn open_onboarding_window(app_handle: &tauri::AppHandle) -> Result<(), AnyEr
         .min_inner_size(width, height)
         .max_inner_size(width, height) // Fixed size for wizard
         .resizable(false)
+        .background_color(Color(10, 10, 10, 255)) // Dark background to prevent white flash
         .visible(false)
         .build()?,
     };

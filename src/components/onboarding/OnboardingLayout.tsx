@@ -29,7 +29,7 @@ export function OnboardingLayout({ children }: OnboardingLayoutProps) {
 
       <div className="flex flex-1 min-h-0">
         {/* Stepper sidebar */}
-        <aside className="w-48 border-r p-4 shrink-0 overflow-y-auto">
+        <aside className="w-48 bg-sidebar text-sidebar-foreground border-r border-sidebar-border p-4 shrink-0 overflow-y-auto">
           <Stepper currentStepIndex={currentStepIndex} />
         </aside>
 
