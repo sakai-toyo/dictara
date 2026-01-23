@@ -46,8 +46,6 @@ macro_rules! with_commands {
             $crate::commands::dismiss_error,
             $crate::commands::resize_popup_for_error,
             $crate::commands::register_audio_level_channel,
-            // Updater
-            $crate::updater::check_for_updates,
             // Onboarding
             $crate::commands::restart_app,
             $crate::commands::load_onboarding_config,

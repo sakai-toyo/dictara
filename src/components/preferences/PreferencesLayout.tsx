@@ -1,5 +1,5 @@
 import { Link, useRouterState } from '@tanstack/react-router'
-import { Download, Info, Key, Keyboard, Settings } from 'lucide-react'
+import { Info, Key, Keyboard, Settings } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { Separator } from '../ui/separator'
 import {
@@ -34,11 +34,6 @@ const menuItems = [
     title: 'System',
     url: '/preferences/system',
     icon: Settings,
-  },
-  {
-    title: 'Updates',
-    url: '/preferences/updates',
-    icon: Download,
   },
   {
     title: 'About',

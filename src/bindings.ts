@@ -294,18 +294,6 @@ async registerAudioLevelChannel(channel: TAURI_CHANNEL<number>) : Promise<Result
     else return { status: "error", error: e  as any };
 }
 },
-/**
- * Manual update check triggered from frontend
- * Returns: true if update is available, false otherwise
- */
-async checkForUpdates(showNoUpdateMessage: boolean) : Promise<Result<boolean, string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("check_for_updates", { showNoUpdateMessage }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
 async restartApp() : Promise<void> {
     await TAURI_INVOKE("restart_app");
 },

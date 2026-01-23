@@ -15,7 +15,6 @@ import { Route as OnboardingRouteRouteImport } from './routes/onboarding/route'
 import { Route as RecordingPopupIndexRouteImport } from './routes/recording-popup/index'
 import { Route as PreferencesIndexRouteImport } from './routes/preferences/index'
 import { Route as OnboardingIndexRouteImport } from './routes/onboarding/index'
-import { Route as PreferencesUpdatesRouteImport } from './routes/preferences/updates'
 import { Route as PreferencesSystemRouteImport } from './routes/preferences/system'
 import { Route as PreferencesHotkeysRouteImport } from './routes/preferences/hotkeys'
 import { Route as PreferencesApiKeysRouteImport } from './routes/preferences/api-keys'
@@ -58,11 +57,6 @@ const OnboardingIndexRoute = OnboardingIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => OnboardingRouteRoute,
-} as any)
-const PreferencesUpdatesRoute = PreferencesUpdatesRouteImport.update({
-  id: '/updates',
-  path: '/updates',
-  getParentRoute: () => PreferencesRouteRoute,
 } as any)
 const PreferencesSystemRoute = PreferencesSystemRouteImport.update({
   id: '/system',
@@ -141,7 +135,6 @@ export interface FileRoutesByFullPath {
   '/preferences/api-keys': typeof PreferencesApiKeysRoute
   '/preferences/hotkeys': typeof PreferencesHotkeysRoute
   '/preferences/system': typeof PreferencesSystemRoute
-  '/preferences/updates': typeof PreferencesUpdatesRoute
   '/onboarding/': typeof OnboardingIndexRoute
   '/preferences/': typeof PreferencesIndexRoute
   '/recording-popup/': typeof RecordingPopupIndexRoute
@@ -159,7 +152,6 @@ export interface FileRoutesByTo {
   '/preferences/api-keys': typeof PreferencesApiKeysRoute
   '/preferences/hotkeys': typeof PreferencesHotkeysRoute
   '/preferences/system': typeof PreferencesSystemRoute
-  '/preferences/updates': typeof PreferencesUpdatesRoute
   '/onboarding': typeof OnboardingIndexRoute
   '/preferences': typeof PreferencesIndexRoute
   '/recording-popup': typeof RecordingPopupIndexRoute
@@ -181,7 +173,6 @@ export interface FileRoutesById {
   '/preferences/api-keys': typeof PreferencesApiKeysRoute
   '/preferences/hotkeys': typeof PreferencesHotkeysRoute
   '/preferences/system': typeof PreferencesSystemRoute
-  '/preferences/updates': typeof PreferencesUpdatesRoute
   '/onboarding/': typeof OnboardingIndexRoute
   '/preferences/': typeof PreferencesIndexRoute
   '/recording-popup/': typeof RecordingPopupIndexRoute
@@ -204,7 +195,6 @@ export interface FileRouteTypes {
     | '/preferences/api-keys'
     | '/preferences/hotkeys'
     | '/preferences/system'
-    | '/preferences/updates'
     | '/onboarding/'
     | '/preferences/'
     | '/recording-popup/'
@@ -222,7 +212,6 @@ export interface FileRouteTypes {
     | '/preferences/api-keys'
     | '/preferences/hotkeys'
     | '/preferences/system'
-    | '/preferences/updates'
     | '/onboarding'
     | '/preferences'
     | '/recording-popup'
@@ -243,7 +232,6 @@ export interface FileRouteTypes {
     | '/preferences/api-keys'
     | '/preferences/hotkeys'
     | '/preferences/system'
-    | '/preferences/updates'
     | '/onboarding/'
     | '/preferences/'
     | '/recording-popup/'
@@ -298,13 +286,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/onboarding/'
       preLoaderRoute: typeof OnboardingIndexRouteImport
       parentRoute: typeof OnboardingRouteRoute
-    }
-    '/preferences/updates': {
-      id: '/preferences/updates'
-      path: '/updates'
-      fullPath: '/preferences/updates'
-      preLoaderRoute: typeof PreferencesUpdatesRouteImport
-      parentRoute: typeof PreferencesRouteRoute
     }
     '/preferences/system': {
       id: '/preferences/system'
@@ -426,7 +407,6 @@ interface PreferencesRouteRouteChildren {
   PreferencesApiKeysRoute: typeof PreferencesApiKeysRoute
   PreferencesHotkeysRoute: typeof PreferencesHotkeysRoute
   PreferencesSystemRoute: typeof PreferencesSystemRoute
-  PreferencesUpdatesRoute: typeof PreferencesUpdatesRoute
   PreferencesIndexRoute: typeof PreferencesIndexRoute
 }
 
@@ -435,7 +415,6 @@ const PreferencesRouteRouteChildren: PreferencesRouteRouteChildren = {
   PreferencesApiKeysRoute: PreferencesApiKeysRoute,
   PreferencesHotkeysRoute: PreferencesHotkeysRoute,
   PreferencesSystemRoute: PreferencesSystemRoute,
-  PreferencesUpdatesRoute: PreferencesUpdatesRoute,
   PreferencesIndexRoute: PreferencesIndexRoute,
 }
 

@@ -354,8 +354,13 @@ async fn download_update_only(
     Ok(())
 }
 
+// TODO: Remove these manual update check functions as they're no longer used
+// after removing the manual update UI from preferences. The automatic background
+// update system (start_periodic_update_check) remains active and functional.
+
 /// Manual update check triggered from frontend
 /// Returns: true if update is available, false otherwise
+#[allow(dead_code)]
 #[tauri::command]
 #[specta::specta]
 pub async fn check_for_updates(
@@ -382,6 +387,7 @@ pub async fn check_for_updates(
 }
 
 /// Manual check implementation - downloads and optionally installs (user requested)
+#[allow(dead_code)]
 async fn manual_check_and_prompt(
     app_handle: &tauri::AppHandle,
     show_no_update_message: bool,
