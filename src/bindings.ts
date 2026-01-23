@@ -396,6 +396,62 @@ async stopKeyCapture() : Promise<Result<null, string>> {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
 }
+},
+/**
+ * Enable autostart on system boot
+ */
+async enableAutostart() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("enable_autostart") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Disable autostart on system boot
+ */
+async disableAutostart() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("disable_autostart") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Check if autostart is enabled
+ */
+async isAutostartEnabled() : Promise<Result<boolean, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("is_autostart_enabled") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Mark that initial autostart setup has been completed
+ * This is called after enabling autostart on first launch
+ */
+async markAutostartSetupDone() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("mark_autostart_setup_done") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Check if initial autostart setup has been completed
+ */
+async isAutostartSetupDone() : Promise<Result<boolean, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("is_autostart_setup_done") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
 }
 }
 
@@ -431,7 +487,12 @@ activeProvider: Provider | null;
 /**
  * Key used to trigger recording (default: Fn)
  */
-recordingTrigger?: RecordingTrigger }
+recordingTrigger?: RecordingTrigger; 
+/**
+ * Whether autostart has been set up on first launch
+ * This prevents re-enabling autostart after user manually disables it
+ */
+autostartInitialSetupDone?: boolean }
 /**
  * Azure OpenAI provider configuration (stored in keychain)
  */

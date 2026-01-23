@@ -152,6 +152,10 @@ pub struct AppConfig {
     /// Key used to trigger recording (default: Fn)
     #[serde(default, alias = "recording_trigger")]
     pub recording_trigger: RecordingTrigger,
+    /// Whether autostart has been set up on first launch
+    /// This prevents re-enabling autostart after user manually disables it
+    #[serde(default)]
+    pub autostart_initial_setup_done: bool,
 }
 
 impl ConfigKey<AppConfig> {
@@ -370,6 +374,7 @@ mod tests {
             AppConfig {
                 active_provider: Some(Provider::OpenAI),
                 recording_trigger: RecordingTrigger::Control,
+                autostart_initial_setup_done: false,
             },
         )];
 

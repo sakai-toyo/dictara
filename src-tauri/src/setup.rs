@@ -1,5 +1,6 @@
 use crate::updater::{self, Updater};
 use crate::{
+    autolaunch,
     config::{
         self, AzureOpenAIConfig, ConfigKey, ConfigStore, OnboardingStep, OpenAIConfig, Provider,
         ShortcutsConfig,
@@ -61,8 +62,11 @@ pub fn setup_app(app: &mut tauri::App<tauri::Wry>) -> Result<(), Box<dyn std::er
     let config_store = config::Config::new(store.clone());
     app.manage(config_store.clone());
 
-    let app_config = config_store.get(&ConfigKey::APP).unwrap_or_default();
+    let mut app_config = config_store.get(&ConfigKey::APP).unwrap_or_default();
     let mut onboarding_config = config_store.get(&ConfigKey::ONBOARDING).unwrap_or_default();
+
+    // Enable autostart on first launch (before onboarding is completed)
+    autolaunch::setup_autolaunch_if_needed(app.handle(), &config_store, &mut app_config);
 
     // Load or migrate shortcuts config
     if let Err(e) = config::migrate_trigger_to_shortcuts(&config_store) {

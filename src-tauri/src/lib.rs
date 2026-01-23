@@ -1,3 +1,4 @@
+mod autolaunch;
 mod clients;
 mod commands;
 mod config;
@@ -26,6 +27,10 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
         .setup(setup::setup_app)
         .invoke_handler(with_commands!(tauri::generate_handler))
         .run(tauri::generate_context!())

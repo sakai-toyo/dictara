@@ -62,6 +62,12 @@ macro_rules! with_commands {
             $crate::commands::reset_shortcuts_config,
             $crate::commands::start_key_capture,
             $crate::commands::stop_key_capture,
+            // System
+            $crate::commands::enable_autostart,
+            $crate::commands::disable_autostart,
+            $crate::commands::is_autostart_enabled,
+            $crate::commands::mark_autostart_setup_done,
+            $crate::commands::is_autostart_setup_done,
         ]
     };
 }
