@@ -1,6 +1,9 @@
 import { Link, useRouterState } from '@tanstack/react-router'
-import { Info, Key, Keyboard, Settings } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { getVersion } from '@tauri-apps/api/app'
+import { error as logError } from '@tauri-apps/plugin-log'
+import { openUrl } from '@tauri-apps/plugin-opener'
+import { ExternalLink, Key, Keyboard, Settings } from 'lucide-react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Separator } from '../ui/separator'
 import {
   Sidebar,
@@ -35,21 +38,30 @@ const menuItems = [
     url: '/preferences/system',
     icon: Settings,
   },
-  {
-    title: 'About',
-    url: '/preferences/about',
-    icon: Info,
-  },
 ]
 
 export function PreferencesLayout({ children }: PreferencesLayoutProps) {
   const routerState = useRouterState()
   const currentPath = routerState.location.pathname
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [appVersion, setAppVersion] = useState<string | null>(null)
 
   // Get current page title
   const currentPage = menuItems.find((item) => item.url === currentPath)
   const pageTitle = currentPage?.title ?? 'Preferences'
+
+  // Fetch app version
+  useEffect(() => {
+    getVersion()
+      .then((v) => setAppVersion(v))
+      .catch((e: unknown) => {
+        logError(`[PreferencesLayout] Failed to load app version: ${e}`)
+      })
+  }, [])
+
+  const handleOpenGitHub = () => {
+    openUrl('https://github.com/vitalii-zinchenko/dictara')
+  }
 
   return (
     <SidebarProvider
@@ -85,6 +97,18 @@ export function PreferencesLayout({ children }: PreferencesLayoutProps) {
           <span className="font-medium">{pageTitle}</span>
         </header>
         <main className="flex-1 overflow-y-auto overflow-x-hidden p-6">{children}</main>
+        <footer className="flex h-8 shrink-0 items-center justify-end gap-3 border-t bg-sidebar px-4 text-sm text-sidebar-foreground/70">
+          <button
+            type="button"
+            onClick={handleOpenGitHub}
+            className="flex items-center gap-1 hover:text-foreground transition-colors"
+          >
+            <span>Source Code: github.com/vitalii-zinchenko/dictara</span>
+            <ExternalLink className="h-3 w-3" />
+          </button>
+          <span>•</span>
+          <span>{appVersion ? `v${appVersion}` : 'Loading...'}</span>
+        </footer>
       </SidebarInset>
     </SidebarProvider>
   )
