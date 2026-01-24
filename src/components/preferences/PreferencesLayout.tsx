@@ -1,9 +1,9 @@
 import { Link, useRouterState } from '@tanstack/react-router'
-import { getVersion } from '@tauri-apps/api/app'
 import { error as logError } from '@tauri-apps/plugin-log'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { ExternalLink, Key, Keyboard, Settings } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
+import { commands } from '@/bindings'
 import { Separator } from '../ui/separator'
 import {
   Sidebar,
@@ -52,7 +52,8 @@ export function PreferencesLayout({ children }: PreferencesLayoutProps) {
 
   // Fetch app version
   useEffect(() => {
-    getVersion()
+    commands
+      .getAppVersion()
       .then((v) => setAppVersion(v))
       .catch((e: unknown) => {
         logError(`[PreferencesLayout] Failed to load app version: ${e}`)

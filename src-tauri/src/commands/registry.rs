@@ -4,6 +4,8 @@
 macro_rules! with_commands {
     ($($wrapper:tt)*) => {
         $($wrapper)*![
+            // App
+            $crate::commands::get_app_version,
             // Accessibility
             $crate::commands::check_accessibility_permission,
             $crate::commands::request_accessibility_permission,

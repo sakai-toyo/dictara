@@ -18,7 +18,6 @@ import { Route as OnboardingIndexRouteImport } from './routes/onboarding/index'
 import { Route as PreferencesSystemRouteImport } from './routes/preferences/system'
 import { Route as PreferencesHotkeysRouteImport } from './routes/preferences/hotkeys'
 import { Route as PreferencesApiKeysRouteImport } from './routes/preferences/api-keys'
-import { Route as PreferencesAboutRouteImport } from './routes/preferences/about'
 import { Route as OnboardingWelcomeRouteImport } from './routes/onboarding/welcome'
 import { Route as OnboardingShortcutsRouteImport } from './routes/onboarding/shortcuts'
 import { Route as OnboardingMicrophoneRouteImport } from './routes/onboarding/microphone'
@@ -71,11 +70,6 @@ const PreferencesHotkeysRoute = PreferencesHotkeysRouteImport.update({
 const PreferencesApiKeysRoute = PreferencesApiKeysRouteImport.update({
   id: '/api-keys',
   path: '/api-keys',
-  getParentRoute: () => PreferencesRouteRoute,
-} as any)
-const PreferencesAboutRoute = PreferencesAboutRouteImport.update({
-  id: '/about',
-  path: '/about',
   getParentRoute: () => PreferencesRouteRoute,
 } as any)
 const OnboardingWelcomeRoute = OnboardingWelcomeRouteImport.update({
@@ -131,7 +125,6 @@ export interface FileRoutesByFullPath {
   '/onboarding/microphone': typeof OnboardingMicrophoneRoute
   '/onboarding/shortcuts': typeof OnboardingShortcutsRoute
   '/onboarding/welcome': typeof OnboardingWelcomeRoute
-  '/preferences/about': typeof PreferencesAboutRoute
   '/preferences/api-keys': typeof PreferencesApiKeysRoute
   '/preferences/hotkeys': typeof PreferencesHotkeysRoute
   '/preferences/system': typeof PreferencesSystemRoute
@@ -148,7 +141,6 @@ export interface FileRoutesByTo {
   '/onboarding/microphone': typeof OnboardingMicrophoneRoute
   '/onboarding/shortcuts': typeof OnboardingShortcutsRoute
   '/onboarding/welcome': typeof OnboardingWelcomeRoute
-  '/preferences/about': typeof PreferencesAboutRoute
   '/preferences/api-keys': typeof PreferencesApiKeysRoute
   '/preferences/hotkeys': typeof PreferencesHotkeysRoute
   '/preferences/system': typeof PreferencesSystemRoute
@@ -169,7 +161,6 @@ export interface FileRoutesById {
   '/onboarding/microphone': typeof OnboardingMicrophoneRoute
   '/onboarding/shortcuts': typeof OnboardingShortcutsRoute
   '/onboarding/welcome': typeof OnboardingWelcomeRoute
-  '/preferences/about': typeof PreferencesAboutRoute
   '/preferences/api-keys': typeof PreferencesApiKeysRoute
   '/preferences/hotkeys': typeof PreferencesHotkeysRoute
   '/preferences/system': typeof PreferencesSystemRoute
@@ -191,7 +182,6 @@ export interface FileRouteTypes {
     | '/onboarding/microphone'
     | '/onboarding/shortcuts'
     | '/onboarding/welcome'
-    | '/preferences/about'
     | '/preferences/api-keys'
     | '/preferences/hotkeys'
     | '/preferences/system'
@@ -208,7 +198,6 @@ export interface FileRouteTypes {
     | '/onboarding/microphone'
     | '/onboarding/shortcuts'
     | '/onboarding/welcome'
-    | '/preferences/about'
     | '/preferences/api-keys'
     | '/preferences/hotkeys'
     | '/preferences/system'
@@ -228,7 +217,6 @@ export interface FileRouteTypes {
     | '/onboarding/microphone'
     | '/onboarding/shortcuts'
     | '/onboarding/welcome'
-    | '/preferences/about'
     | '/preferences/api-keys'
     | '/preferences/hotkeys'
     | '/preferences/system'
@@ -306,13 +294,6 @@ declare module '@tanstack/react-router' {
       path: '/api-keys'
       fullPath: '/preferences/api-keys'
       preLoaderRoute: typeof PreferencesApiKeysRouteImport
-      parentRoute: typeof PreferencesRouteRoute
-    }
-    '/preferences/about': {
-      id: '/preferences/about'
-      path: '/about'
-      fullPath: '/preferences/about'
-      preLoaderRoute: typeof PreferencesAboutRouteImport
       parentRoute: typeof PreferencesRouteRoute
     }
     '/onboarding/welcome': {
@@ -403,7 +384,6 @@ const OnboardingRouteRouteWithChildren = OnboardingRouteRoute._addFileChildren(
 )
 
 interface PreferencesRouteRouteChildren {
-  PreferencesAboutRoute: typeof PreferencesAboutRoute
   PreferencesApiKeysRoute: typeof PreferencesApiKeysRoute
   PreferencesHotkeysRoute: typeof PreferencesHotkeysRoute
   PreferencesSystemRoute: typeof PreferencesSystemRoute
@@ -411,7 +391,6 @@ interface PreferencesRouteRouteChildren {
 }
 
 const PreferencesRouteRouteChildren: PreferencesRouteRouteChildren = {
-  PreferencesAboutRoute: PreferencesAboutRoute,
   PreferencesApiKeysRoute: PreferencesApiKeysRoute,
   PreferencesHotkeysRoute: PreferencesHotkeysRoute,
   PreferencesSystemRoute: PreferencesSystemRoute,

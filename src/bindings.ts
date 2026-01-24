@@ -7,6 +7,12 @@
 
 
 export const commands = {
+/**
+ * Get the application version with -local suffix when running in debug mode
+ */
+async getAppVersion() : Promise<string> {
+    return await TAURI_INVOKE("get_app_version");
+},
 async checkAccessibilityPermission() : Promise<boolean> {
     return await TAURI_INVOKE("check_accessibility_permission");
 },
