@@ -1,9 +1,9 @@
+import { commands } from '@/bindings'
 import { Link, useRouterState } from '@tanstack/react-router'
 import { error as logError } from '@tauri-apps/plugin-log'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { ExternalLink, Key, Keyboard, Settings } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
-import { commands } from '@/bindings'
 import { Separator } from '../ui/separator'
 import {
   Sidebar,
@@ -24,7 +24,7 @@ interface PreferencesLayoutProps {
 
 const menuItems = [
   {
-    title: 'API Keys',
+    title: 'Providers & Models',
     url: '/preferences/api-keys',
     icon: Key,
   },
@@ -69,7 +69,7 @@ export function PreferencesLayout({ children }: PreferencesLayoutProps) {
       open={sidebarOpen}
       onOpenChange={setSidebarOpen}
       className="h-screen"
-      style={{ '--sidebar-width': '10rem' } as React.CSSProperties}
+      style={{ '--sidebar-width': '14rem' } as React.CSSProperties}
     >
       <Sidebar collapsible="icon">
         <SidebarContent>

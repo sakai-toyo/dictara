@@ -10,7 +10,7 @@ export const STEPS: StepDefinition[] = [
   { id: 'welcome', label: 'Welcome', shortLabel: 'Welcome' },
   { id: 'accessibility', label: 'Accessibility', shortLabel: 'Access.' },
   { id: 'microphone', label: 'Microphone', shortLabel: 'Mic' },
-  { id: 'api_keys', label: 'API Keys', shortLabel: 'API Keys' },
+  { id: 'api_keys', label: 'Providers & Models', shortLabel: 'Providers' },
   { id: 'shortcuts', label: 'Shortcuts', shortLabel: 'Shortcuts' },
   { id: 'fn_hold', label: 'Push to Talk', shortLabel: 'Push to Talk' },
   { id: 'fn_space', label: 'Hands-Free', shortLabel: 'Hands-Free' },

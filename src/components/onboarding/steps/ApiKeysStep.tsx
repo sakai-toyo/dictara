@@ -58,7 +58,7 @@ export function ApiKeysStep() {
   if (isLoading) {
     return (
       <StepContainer
-        title="Configure API Keys"
+        title="Providers & Models"
         description="Loading..."
         showBack={true}
         showSkip={true}
@@ -72,7 +72,7 @@ export function ApiKeysStep() {
 
   return (
     <StepContainer
-      title="Configure API Keys"
+      title="Providers & Models"
       description="Choose your speech recognition provider and enter your API credentials."
       onNext={handleNext}
       nextDisabled={!hasActiveProvider}
