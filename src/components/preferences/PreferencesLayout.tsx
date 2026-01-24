@@ -2,7 +2,7 @@ import { commands } from '@/bindings'
 import { Link, useRouterState } from '@tanstack/react-router'
 import { error as logError } from '@tauri-apps/plugin-log'
 import { openUrl } from '@tauri-apps/plugin-opener'
-import { ExternalLink, Key, Keyboard, Settings } from 'lucide-react'
+import { ExternalLink, Sparkles, Keyboard, Settings } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { Separator } from '../ui/separator'
 import {
@@ -26,7 +26,7 @@ const menuItems = [
   {
     title: 'Providers & Models',
     url: '/preferences/api-keys',
-    icon: Key,
+    icon: Sparkles,
   },
   {
     title: 'Shortcuts',
