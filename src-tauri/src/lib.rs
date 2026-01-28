@@ -12,14 +12,12 @@ mod recording;
 mod setup;
 mod shortcuts;
 mod specta;
+mod telemetry;
 mod text_paster;
 mod ui;
 mod updater;
 
 pub fn run() {
-    // Load environment variables from .env file
-    dotenvy::dotenv().ok();
-
     tauri::Builder::default()
         .plugin(log::create_plugin().build())
         .plugin(tauri_plugin_store::Builder::new().build())

@@ -221,6 +221,28 @@ impl ConfigKey<LocalModelConfig> {
     pub const LOCAL_MODEL: Self = Self::new("localModelConfig");
 }
 
+// ===== Telemetry Configuration =====
+
+/// Telemetry configuration (stored locally)
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct TelemetryConfig {
+    /// Anonymous device ID (generated once on first launch)
+    pub device_id: String,
+    /// Whether user has opted into telemetry
+    #[serde(default)]
+    pub telemetry_enabled: bool,
+    /// Timestamp of last session start (Unix timestamp in seconds)
+    /// Used to detect midnight boundary crossing for daily session refresh
+    #[serde(default)]
+    pub last_session_start: Option<u64>,
+}
+
+impl ConfigKey<TelemetryConfig> {
+    #[allow(dead_code)]
+    pub const TELEMETRY: Self = Self::new("telemetryConfig");
+}
+
 impl ConfigKey<ShortcutsConfig> {
     #[allow(dead_code)]
     pub const SHORTCUTS: Self = Self::new("shortcutsConfig");

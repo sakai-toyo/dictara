@@ -13,7 +13,7 @@ use crate::{
         cleanup_old_recordings, Controller, LastRecording, LastRecordingState, RecordingCommand,
         RecordingStateManager,
     },
-    specta,
+    specta, telemetry,
     ui::{menu::Menu, tray::Tray, window},
 };
 use log::{error, info, warn};
@@ -61,6 +61,12 @@ pub fn setup_app(app: &mut tauri::App<tauri::Wry>) -> Result<(), Box<dyn std::er
     // Create and register Config as managed state
     let config_store = config::Config::new(store.clone());
     app.manage(config_store.clone());
+
+    // Initialize telemetry and Sentry
+    // Note: Sentry is disabled in debug builds (npm run dev:tauri)
+    // Sessions are periodically checked (every hour) and refreshed at midnight for accurate DAU tracking
+    let device_id = telemetry::get_or_create_device_id(&config_store);
+    let _sentry_guard = telemetry::init_sentry(&device_id, &config_store);
 
     let mut app_config = config_store.get(&ConfigKey::APP).unwrap_or_default();
     let mut onboarding_config = config_store.get(&ConfigKey::ONBOARDING).unwrap_or_default();

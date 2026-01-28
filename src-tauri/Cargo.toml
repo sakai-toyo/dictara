@@ -1,6 +1,6 @@
 [package]
 name = "dictara"
-version = "0.2.1"
+version = "0.2.1-rc.1"
 description = "Dictara - Speach to text app"
 authors = ["Dictara Contributors"]
 license = "MIT"
@@ -27,6 +27,8 @@ tauri-plugin-process = "2"
 tauri-plugin-store = "2"
 tauri-plugin-updater = "2"
 tauri-plugin-log = "2"
+sentry = "0.46.1"
+uuid = { version = "1.11", features = ["v4"] }
 log = "0.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -37,7 +39,6 @@ hound = "3.5"
 rubato = "0.16"
 tokio = { version = "1", features = ["full"] }
 reqwest = { version = "0.12", features = ["blocking", "multipart"] }
-dotenvy = "0.15"
 arboard = "3.3"
 enigo = "0.6"
 # Silero VAD - using official implementation directly (no wrapper crate)

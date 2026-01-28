@@ -54,7 +54,11 @@ Run `npm run be:check` to update the lock file.
 
 # Step 3: Commit and push changes
 
-Commit and push changes using `/git commit auto accept commit message` with message: `chore: bump version to x.x.x` (replace x.x.x with actual version).
+Stage both version files and commit:
+```bash
+git add Cargo.lock src-tauri/Cargo.toml && git commit -m "chore: bump version to x.x.x" && git push origin main
+```
+(replace x.x.x with actual version)
 
 # Step 4: Trigger release
 
