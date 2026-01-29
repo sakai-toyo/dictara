@@ -187,6 +187,8 @@ jobs:
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
           APPLE_API_KEY_PATH: ${{ github.workspace }}/api.p8
+          # Telemetry
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         with:
           # Use production config for updater
           tauriScript: npm run tauri
@@ -271,5 +273,8 @@ jobs:
 #   - APPLE_API_ISSUER: Issuer ID from App Store Connect > Users and Access > Keys
 #   - APPLE_API_KEY: Key ID from App Store Connect
 #   - APPLE_API_KEY_FILE: Contents of the .p8 API key file
+#
+# Telemetry:
+#   - SENTRY_DSN: Sentry Data Source Name for error tracking and telemetry
 #
 # =============================================================================
