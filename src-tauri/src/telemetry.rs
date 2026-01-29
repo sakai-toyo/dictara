@@ -140,9 +140,8 @@ pub fn init_sentry(device_id: &str, config: &Config) -> Option<sentry::ClientIni
             // Update session start time and handle midnight refresh
             refresh_session_if_needed(config);
 
-            // Spawn background task to periodically check for midnight boundary crossing
-            // This ensures accurate DAU tracking for long-running sessions
-            start_session_refresh_task(config.clone());
+            // Note: Background session refresh task is started in setup.rs
+            // using tauri::async_runtime::spawn() to avoid runtime context issues
 
             info!("Sentry initialized successfully");
             Some(guard)
@@ -222,33 +221,30 @@ pub fn refresh_session_if_needed(config: &Config) {
     }
 }
 
-/// Start background task to periodically refresh sessions at midnight
+/// Background task to periodically refresh sessions at midnight
 ///
 /// For long-running desktop apps, we need to manually refresh sessions
 /// when crossing the midnight boundary to get accurate DAU metrics.
 ///
-/// This spawns a tokio task that checks every hour if we've crossed midnight,
-/// and refreshes the session if needed.
-fn start_session_refresh_task(config: Config) {
-    tokio::spawn(async move {
-        // Check every hour if we've crossed midnight
-        let mut interval = tokio::time::interval(Duration::from_secs(3600)); // 1 hour
+/// This returns a Future that checks every hour if we've crossed midnight,
+/// and refreshes the session if needed. The caller should spawn this using
+/// an appropriate runtime (e.g., tauri::async_runtime::spawn).
+pub async fn start_session_refresh_task(config: Config) {
+    // Check every hour if we've crossed midnight
+    let mut interval = tokio::time::interval(Duration::from_secs(3600)); // 1 hour
 
-        loop {
-            interval.tick().await;
+    loop {
+        interval.tick().await;
 
-            // Skip if in debug mode and testing is not enabled
-            #[cfg(debug_assertions)]
-            {
-                if !ENABLE_SENTRY_IN_DEBUG {
-                    continue;
-                }
+        // Skip if in debug mode and testing is not enabled
+        #[cfg(debug_assertions)]
+        {
+            if !ENABLE_SENTRY_IN_DEBUG {
+                continue;
             }
-
-            info!("Running periodic session refresh check");
-            refresh_session_if_needed(&config);
         }
-    });
 
-    info!("Started periodic session refresh task (checks every hour)");
+        info!("Running periodic session refresh check");
+        refresh_session_if_needed(&config);
+    }
 }
