@@ -68,16 +68,6 @@ pub fn setup_app(app: &mut tauri::App<tauri::Wry>) -> Result<(), Box<dyn std::er
     let device_id = telemetry::get_or_create_device_id(&config_store);
     let _sentry_guard = telemetry::init_sentry(&device_id, &config_store);
 
-    // If Sentry was initialized, start the background session refresh task
-    // This task checks every hour if we've crossed midnight and refreshes the session for accurate DAU tracking
-    if _sentry_guard.is_some() {
-        let config_for_task = config_store.clone();
-        tauri::async_runtime::spawn(async move {
-            telemetry::start_session_refresh_task(config_for_task).await;
-        });
-        info!("Started periodic session refresh task (checks every hour)");
-    }
-
     let mut app_config = config_store.get(&ConfigKey::APP).unwrap_or_default();
     let mut onboarding_config = config_store.get(&ConfigKey::ONBOARDING).unwrap_or_default();
 
