@@ -5,7 +5,8 @@ Also, you can clone source code for other libraries if you need into `~/ai-conte
 
 # Logs
 
-Development logs are stored in `.logs/` folder (gitignored).
+- **Development:** `.logs/` folder (gitignored)
+- **Production:** `tail -f ~/Library/Logs/app.dictara/Dictara.log`
 
 # Code changes workflow:
 
