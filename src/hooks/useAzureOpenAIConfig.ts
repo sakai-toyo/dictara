@@ -1,16 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { commands, type AzureOpenAIConfig } from '@/bindings'
+import { commands, type AzureOpenAIConfigStatus } from '@/bindings'
 
 export const AZURE_OPENAI_CONFIG_QUERY_KEY = ['azureOpenaiConfig'] as const
 
 /**
- * Hook to load the Azure OpenAI configuration.
- * Provides caching, loading states, and automatic error handling.
+ * Hook to load the Azure OpenAI configuration status.
+ * Returns whether a config exists and the endpoint (never exposes the API key).
  */
 export function useAzureOpenAIConfig() {
   return useQuery({
     queryKey: AZURE_OPENAI_CONFIG_QUERY_KEY,
-    queryFn: async (): Promise<AzureOpenAIConfig | null> => {
+    queryFn: async (): Promise<AzureOpenAIConfigStatus | null> => {
       const result = await commands.loadAzureOpenaiConfig()
       if (result.status === 'error') {
         throw new Error(result.error)

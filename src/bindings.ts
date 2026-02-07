@@ -93,7 +93,7 @@ async clearCurrentProvider() : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async loadOpenaiConfig() : Promise<Result<OpenAIConfig | null, string>> {
+async loadOpenaiConfig() : Promise<Result<OpenAIConfigStatus | null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("load_openai_config") };
 } catch (e) {
@@ -125,7 +125,7 @@ async testOpenaiConfig(apiKey: string) : Promise<Result<boolean, string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async loadAzureOpenaiConfig() : Promise<Result<AzureOpenAIConfig | null, string>> {
+async loadAzureOpenaiConfig() : Promise<Result<AzureOpenAIConfigStatus | null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("load_azure_openai_config") };
 } catch (e) {
@@ -488,9 +488,9 @@ recordingTrigger?: RecordingTrigger;
  */
 autostartInitialSetupDone?: boolean }
 /**
- * Azure OpenAI provider configuration (stored in keychain)
+ * Frontend-facing status for Azure OpenAI provider (never exposes API key)
  */
-export type AzureOpenAIConfig = { apiKey: string; endpoint: string }
+export type AzureOpenAIConfigStatus = { configured: boolean; endpoint: string }
 /**
  * Key capture event - streamed to frontend during shortcut configuration
  */
@@ -572,9 +572,9 @@ pendingRestart: boolean }
  */
 export type OnboardingStep = "welcome" | "accessibility" | "microphone" | "api_keys" | "shortcuts" | "fn_hold" | "fn_space" | "complete"
 /**
- * OpenAI provider configuration (stored in keychain)
+ * Frontend-facing status for OpenAI provider (never exposes API key)
  */
-export type OpenAIConfig = { apiKey: string }
+export type OpenAIConfigStatus = { configured: boolean }
 /**
  * Provider types supported by the application
  */
