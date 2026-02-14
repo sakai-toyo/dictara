@@ -1,5 +1,33 @@
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
+pub const DEFAULT_POST_PROCESS_MODEL: &str = "gpt-4.1-nano";
+pub const DEFAULT_POST_PROCESS_PROMPT: &str = r#"You are a text post-processor for speech transcription.
+Rewrite the user text with these rules:
+1) Keep the original meaning exactly.
+2) Fix obvious recognition mistakes, typos, dropped/missing characters, punctuation, and spacing.
+3) Preserve language and proper nouns.
+4) Output only the final rewritten text, no explanation."#;
+
+fn default_post_process_enabled() -> bool {
+    true
+}
+
+fn default_post_process_model() -> String {
+    DEFAULT_POST_PROCESS_MODEL.to_string()
+}
+
+fn default_post_process_prompt() -> String {
+    DEFAULT_POST_PROCESS_PROMPT.to_string()
+}
+
+pub const DEFAULT_MIN_SPEECH_DURATION_MS: u64 = 500;
+pub const MIN_ALLOWED_SPEECH_DURATION_MS: u64 = 100;
+pub const MAX_ALLOWED_SPEECH_DURATION_MS: u64 = 10_000;
+
+fn default_min_speech_duration_ms() -> u64 {
+    DEFAULT_MIN_SPEECH_DURATION_MS
+}
+
 /// Provider types supported by the application
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, specta::Type)]
 pub enum Provider {
@@ -143,7 +171,7 @@ impl<T> ConfigKey<T> {
 // ===== App Configuration =====
 
 /// App configuration (stored locally)
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, specta::Type)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub struct AppConfig {
     /// Currently active provider (only one can be active)
@@ -156,6 +184,38 @@ pub struct AppConfig {
     /// This prevents re-enabling autostart after user manually disables it
     #[serde(default)]
     pub autostart_initial_setup_done: bool,
+    /// Whether to run LLM post-processing after transcription
+    #[serde(
+        default = "default_post_process_enabled",
+        alias = "post_process_enabled"
+    )]
+    pub post_process_enabled: bool,
+    /// OpenAI model used for transcription post-processing
+    #[serde(default = "default_post_process_model", alias = "post_process_model")]
+    pub post_process_model: String,
+    /// Prompt used for transcription post-processing
+    #[serde(default = "default_post_process_prompt", alias = "post_process_prompt")]
+    pub post_process_prompt: String,
+    /// Minimum speech duration required before running transcription (milliseconds)
+    #[serde(
+        default = "default_min_speech_duration_ms",
+        alias = "min_speech_duration_ms"
+    )]
+    pub min_speech_duration_ms: u64,
+}
+
+impl Default for AppConfig {
+    fn default() -> Self {
+        Self {
+            active_provider: None,
+            recording_trigger: RecordingTrigger::default(),
+            autostart_initial_setup_done: false,
+            post_process_enabled: default_post_process_enabled(),
+            post_process_model: default_post_process_model(),
+            post_process_prompt: default_post_process_prompt(),
+            min_speech_duration_ms: default_min_speech_duration_ms(),
+        }
+    }
 }
 
 impl ConfigKey<AppConfig> {
@@ -414,6 +474,10 @@ mod tests {
                 active_provider: Some(Provider::OpenAI),
                 recording_trigger: RecordingTrigger::Control,
                 autostart_initial_setup_done: false,
+                post_process_enabled: true,
+                post_process_model: DEFAULT_POST_PROCESS_MODEL.to_string(),
+                post_process_prompt: DEFAULT_POST_PROCESS_PROMPT.to_string(),
+                min_speech_duration_ms: DEFAULT_MIN_SPEECH_DURATION_MS,
             },
         )];
 

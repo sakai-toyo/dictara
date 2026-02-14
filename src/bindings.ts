@@ -52,9 +52,9 @@ async loadAppConfig() : Promise<Result<AppConfig, string>> {
 /**
  * Save app configuration (general-purpose command that can update multiple fields)
  */
-async saveAppConfig(activeProvider: string | null, recordingTrigger: RecordingTrigger | null) : Promise<Result<null, string>> {
+async saveAppConfig(activeProvider: string | null, recordingTrigger: RecordingTrigger | null, postProcessEnabled: boolean | null, postProcessModel: string | null, postProcessPrompt: string | null, minSpeechDurationMs: number | null) : Promise<Result<null, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("save_app_config", { activeProvider, recordingTrigger }) };
+    return { status: "ok", data: await TAURI_INVOKE("save_app_config", { activeProvider, recordingTrigger, postProcessEnabled, postProcessModel, postProcessPrompt, minSpeechDurationMs }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -486,7 +486,23 @@ recordingTrigger?: RecordingTrigger;
  * Whether autostart has been set up on first launch
  * This prevents re-enabling autostart after user manually disables it
  */
-autostartInitialSetupDone?: boolean }
+autostartInitialSetupDone?: boolean; 
+/**
+ * Whether to run LLM post-processing after transcription
+ */
+postProcessEnabled: boolean; 
+/**
+ * OpenAI model used for transcription post-processing
+ */
+postProcessModel: string; 
+/**
+ * Prompt used for transcription post-processing
+ */
+postProcessPrompt: string; 
+/**
+ * Minimum speech duration required before running transcription (milliseconds)
+ */
+minSpeechDurationMs: number }
 /**
  * Frontend-facing status for Azure OpenAI provider (never exposes API key)
  */

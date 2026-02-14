@@ -1,10 +1,14 @@
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use tauri::ipc::Channel;
+use tauri::{ipc::Channel, Manager};
 use tauri_specta::Event;
 use tokio::sync::mpsc::Receiver;
 
-use crate::clients::{Transcriber, TranscriptionError};
+use crate::clients::{post_process_with_openai, Transcriber, TranscriptionError};
+use crate::config::{
+    self, AppConfig, ConfigKey, ConfigStore, DEFAULT_MIN_SPEECH_DURATION_MS,
+    MAX_ALLOWED_SPEECH_DURATION_MS, MIN_ALLOWED_SPEECH_DURATION_MS,
+};
 use crate::recording::{
     audio_recorder::{cleanup_recording_file, AudioRecorder},
     commands::RecordingCommand,
@@ -17,10 +21,6 @@ use crate::updater;
 
 /// Bytes per second for 16kHz mono 16-bit audio (~32KB/s)
 const AUDIO_BYTES_PER_SECOND: u64 = 32000;
-
-/// Minimum speech duration in milliseconds to proceed with transcription
-/// Audio shorter than this is considered "no speech detected"
-const MIN_SPEECH_DURATION_MS: u64 = 500;
 
 /// Whether to delete audio files after transcription completes
 /// Set to false to keep recordings for debugging
@@ -277,12 +277,14 @@ impl Controller {
             .stop()
             .map_err(|e| ActionError::stop(format!("{:?}", e), None))?;
 
+        let min_speech_duration_ms = self.get_min_speech_duration_ms();
+
         // Check if enough speech was detected (VAD filtering may have removed everything)
-        if recording_result.speech_duration_ms < MIN_SPEECH_DURATION_MS {
+        if recording_result.speech_duration_ms < min_speech_duration_ms {
             log::info!(
                 "No speech detected: {}ms < {}ms minimum, skipping transcription",
                 recording_result.speech_duration_ms,
-                MIN_SPEECH_DURATION_MS
+                min_speech_duration_ms
             );
 
             // Clean up the (nearly empty) audio file
@@ -304,6 +306,23 @@ impl Controller {
             &recording_result.file_path,
             recording_result.speech_duration_ms,
         )
+    }
+
+    fn get_min_speech_duration_ms(&self) -> u64 {
+        let config_store = self.app_handle.state::<config::Config>();
+        let app_config: AppConfig = config_store.get(&ConfigKey::APP).unwrap_or_default();
+        let configured = app_config.min_speech_duration_ms;
+
+        if (MIN_ALLOWED_SPEECH_DURATION_MS..=MAX_ALLOWED_SPEECH_DURATION_MS).contains(&configured) {
+            configured
+        } else {
+            log::warn!(
+                "Invalid min_speech_duration_ms={} in config, falling back to default={}",
+                configured,
+                DEFAULT_MIN_SPEECH_DURATION_MS
+            );
+            DEFAULT_MIN_SPEECH_DURATION_MS
+        }
     }
 
     fn handle_cancel(&self, recording: Recording) -> Result<(), ActionError> {
@@ -386,7 +405,21 @@ impl Controller {
             .transcribe(PathBuf::from(audio_file_path), duration_ms)
             .map_err(|e| ActionError::transcription(&e, audio_file_path.to_string()))?;
 
-        self.handle_transcription_success(&text, audio_file_path)
+        let config_store = self.app_handle.state::<config::Config>();
+        let app_config = config_store.get(&ConfigKey::APP).unwrap_or_default();
+
+        let post_processed_text = if app_config.post_process_enabled {
+            post_process_with_openai(
+                &text,
+                &app_config.post_process_model,
+                &app_config.post_process_prompt,
+            )
+        } else {
+            log::info!("Skipping post-processing because it is disabled in settings");
+            text
+        };
+
+        self.handle_transcription_success(&post_processed_text, audio_file_path)
     }
 
     /// Handle successful transcription: cleanup, paste, update state, emit event
