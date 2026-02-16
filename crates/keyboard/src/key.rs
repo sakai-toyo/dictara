@@ -590,7 +590,7 @@ impl Key {
             Key::MissionControl => "Mission Control".to_string(),
 
             // Unknown
-            Key::Unknown(code) => format!("Key {}", code),
+            Key::Unknown(code) => format!("Key {code}"),
         }
     }
 }
